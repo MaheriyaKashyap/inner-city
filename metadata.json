@@ -1,0 +1,8 @@
+{
+  "name": "Copy of Inner City",
+  "description": "A high-contrast, rave-first social event discovery app designed for fast scanning and city-scoped context.",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera"
+  ]
+}

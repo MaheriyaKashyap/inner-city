@@ -1,0 +1,430 @@
+/**
+ * Ticketmaster Discovery API Integration
+ * Documentation: https://developer.ticketmaster.com/products-and-docs/apis/discovery-api/v2/
+ */
+
+export interface TicketmasterEvent {
+  id: string;
+  name: string;
+  url: string;
+  locale: string;
+  images: Array<{
+    ratio: string;
+    url: string;
+    width: number;
+    height: number;
+    fallback: boolean;
+  }>;
+  sales: {
+    public: {
+      startDateTime: string;
+      endDateTime: string;
+      startTBD?: boolean;
+      startTBA?: boolean;
+    };
+  };
+  dates: {
+    start: {
+      localDate: string;
+      localTime: string;
+      dateTime: string;
+      dateTBD?: boolean;
+      dateTBA?: boolean;
+      timeTBA?: boolean;
+      noSpecificTime?: boolean;
+    };
+    timezone: string;
+    status: {
+      code: string;
+    };
+    spanMultipleDays?: boolean;
+  };
+  classifications: Array<{
+    primary: boolean;
+    segment?: {
+      id: string;
+      name: string;
+    };
+    genre?: {
+      id: string;
+      name: string;
+    };
+    subGenre?: {
+      id: string;
+      name: string;
+    };
+  }>;
+  promoter?: {
+    id: string;
+    name: string;
+  };
+  promoters?: Array<{
+    id: string;
+    name: string;
+  }>;
+  _embedded?: {
+    venues: Array<{
+      id: string;
+      name: string;
+      type: string;
+      url?: string;
+      locale: string;
+      images?: Array<{
+        ratio: string;
+        url: string;
+        width: number;
+        height: number;
+        fallback: boolean;
+      }>;
+      postalCode?: string;
+      timezone: string;
+      city: {
+        name: string;
+      };
+      state?: {
+        name: string;
+        stateCode: string;
+      };
+      country: {
+        name: string;
+        countryCode: string;
+      };
+      address?: {
+        line1: string;
+        line2?: string;
+      };
+      location?: {
+        longitude: string;
+        latitude: string;
+      };
+      markets?: Array<{
+        id: string;
+        name: string;
+      }>;
+      dmas?: Array<{
+        id: number;
+        name: string;
+      }>;
+      boxOfficeInfo?: {
+        phoneNumberDetail?: string;
+        openHoursDetail?: string;
+        acceptedPaymentDetail?: string;
+        willCallDetail?: string;
+      };
+      parkingDetail?: string;
+      accessibleSeatingDetail?: string;
+      generalInfo?: {
+        generalRule?: string;
+        childRule?: string;
+      };
+    }>;
+    attractions?: Array<{
+      id: string;
+      name: string;
+      type: string;
+      url?: string;
+      locale: string;
+      images?: Array<{
+        ratio: string;
+        url: string;
+        width: number;
+        height: number;
+        fallback: boolean;
+      }>;
+    }>;
+  };
+  priceRanges?: Array<{
+    type: string;
+    currency: string;
+    min: number;
+    max: number;
+  }>;
+  ticketLimit?: {
+    info: string;
+  };
+  ageRestrictions?: {
+    legalAgeEnforced: boolean;
+  };
+  ticketing?: {
+    safeTix?: {
+      enabled: boolean;
+    };
+    allInclusivePricing?: {
+      enabled: boolean;
+    };
+  };
+  _links: {
+    self: {
+      href: string;
+    };
+    attractions?: Array<{
+      href: string;
+    }>;
+    venues?: Array<{
+      href: string;
+    }>;
+  };
+}
+
+export interface TicketmasterSearchResponse {
+  _embedded?: {
+    events: TicketmasterEvent[];
+  };
+  _links: {
+    self: {
+      href: string;
+    };
+    next?: {
+      href: string;
+    };
+    prev?: {
+      href: string;
+    };
+  };
+  page: {
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    number: number;
+  };
+}
+
+const API_BASE_URL = 'https://app.ticketmaster.com/discovery/v2';
+
+/**
+ * Get API key from environment or throw error
+ */
+function getApiKey(): string {
+  const apiKey = import.meta.env.VITE_TICKETMASTER_API_KEY || 
+                 (typeof process !== 'undefined' && process.env?.VITE_TICKETMASTER_API_KEY);
+  
+  if (!apiKey) {
+    throw new Error('TICKETMASTER_API_KEY is not configured. Please set VITE_TICKETMASTER_API_KEY in your .env.local file');
+  }
+  
+  return apiKey;
+}
+
+/**
+ * Search for events by city
+ */
+export async function searchEventsByCity(
+  cityName: string,
+  countryCode: string = 'US',
+  options: {
+    classificationName?: string; // e.g., 'music', 'sports', 'arts'
+    startDateTime?: string; // ISO 8601 format
+    endDateTime?: string; // ISO 8601 format
+    size?: number; // results per page (max 200)
+    page?: number;
+  } = {}
+): Promise<TicketmasterSearchResponse> {
+  const apiKey = getApiKey();
+  const params = new URLSearchParams({
+    apikey: apiKey,
+    city: cityName,
+    countryCode,
+    size: String(options.size || 20),
+    page: String(options.page || 0),
+    sort: 'date,asc', // Sort by date ascending
+  });
+
+  if (options.classificationName) {
+    params.append('classificationName', options.classificationName);
+  }
+
+  if (options.startDateTime) {
+    params.append('startDateTime', options.startDateTime);
+  }
+
+  if (options.endDateTime) {
+    params.append('endDateTime', options.endDateTime);
+  }
+
+  try {
+    // Use Supabase Edge Function if available, otherwise fallback to direct API
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    
+    if (supabaseUrl) {
+      // Use Supabase Edge Function (solves CORS)
+      const { invokeSupabaseFunction } = await import('../lib/supabase');
+      try {
+        const data = await invokeSupabaseFunction<TicketmasterSearchResponse>('ticketmaster-proxy', {
+          city: cityName,
+          countryCode,
+          category: options.classificationName,
+          size: options.size || 20,
+          page: options.page || 0,
+        });
+        return data;
+      } catch (supabaseError) {
+        // Fallback to direct API if Supabase function fails
+        if (import.meta.env.DEV) {
+          console.warn('Supabase function failed, falling back to direct API:', supabaseError);
+        }
+      }
+    }
+
+    // Fallback: Direct API call (will fail with CORS in browser, but works in dev)
+    const response = await fetch(`${API_BASE_URL}/events.json?${params.toString()}`);
+    
+    if (!response.ok) {
+      // Handle rate limiting (429) and CORS errors gracefully
+      if (response.status === 429) {
+        if (import.meta.env.DEV) {
+          console.warn('Ticketmaster API rate limited (429). Use Supabase Edge Function.');
+        }
+        return { _embedded: { events: [] }, _links: { self: { href: '' } }, page: { size: 0, totalElements: 0, totalPages: 0, number: 0 } };
+      }
+      
+      const errorText = await response.text();
+      if (import.meta.env.DEV) {
+        console.warn(`Ticketmaster API error: ${response.status} - ${errorText}`);
+      }
+      return { _embedded: { events: [] }, _links: { self: { href: '' } }, page: { size: 0, totalElements: 0, totalPages: 0, number: 0 } };
+    }
+
+    const data = await response.json();
+    return data as TicketmasterSearchResponse;
+  } catch (error: any) {
+    // Handle CORS errors and network failures gracefully
+    if (error?.message?.includes('CORS') || error?.message?.includes('Failed to fetch') || error?.name === 'TypeError') {
+      if (import.meta.env.DEV) {
+        console.warn('Ticketmaster API CORS error. Set up Supabase Edge Function to fix this.');
+      }
+      return { _embedded: { events: [] }, _links: { self: { href: '' } }, page: { size: 0, totalElements: 0, totalPages: 0, number: 0 } };
+    }
+    
+    if (import.meta.env.DEV) {
+      console.warn('Error fetching Ticketmaster events:', error);
+    }
+    return { _embedded: { events: [] }, _links: { self: { href: '' } }, page: { size: 0, totalElements: 0, totalPages: 0, number: 0 } };
+  }
+}
+
+/**
+ * Get event details by ID
+ */
+export async function getEventDetails(eventId: string): Promise<TicketmasterEvent> {
+  const apiKey = getApiKey();
+  const params = new URLSearchParams({
+    apikey: apiKey,
+  });
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/events/${eventId}.json?${params.toString()}`);
+    
+    if (!response.ok) {
+      // Handle rate limiting and errors gracefully
+      if (response.status === 429) {
+        if (import.meta.env.DEV) {
+          console.warn('Ticketmaster API rate limited (429)');
+        }
+        throw new Error('Rate limited');
+      }
+      
+      const errorText = await response.text();
+      if (import.meta.env.DEV) {
+        console.warn(`Ticketmaster API error: ${response.status} - ${errorText}`);
+      }
+      throw new Error(`Ticketmaster API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data as TicketmasterEvent;
+  } catch (error: any) {
+    // Handle CORS errors gracefully
+    if (error?.message?.includes('CORS') || error?.message?.includes('Failed to fetch') || error?.name === 'TypeError') {
+      if (import.meta.env.DEV) {
+        console.warn('Ticketmaster API CORS error');
+      }
+      throw new Error('CORS error');
+    }
+    
+    if (import.meta.env.DEV) {
+      console.warn('Error fetching Ticketmaster event details:', error);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Convert Ticketmaster event to Inner City Event format
+ */
+export function convertTicketmasterEventToInnerCity(
+  tmEvent: TicketmasterEvent,
+  cityId: string,
+  organizerId: string = 'ticketmaster'
+): any {
+  const venue = tmEvent._embedded?.venues?.[0];
+  const classification = tmEvent.classifications?.[0];
+  
+  // Get primary image or first available image
+  const imageUrl = tmEvent.images?.find(img => img.ratio === '16_9' && !img.fallback)?.url ||
+                   tmEvent.images?.find(img => !img.fallback)?.url ||
+                   'https://picsum.photos/800/600';
+
+  const startDate = tmEvent.dates.start.dateTime || 
+                   `${tmEvent.dates.start.localDate}T${tmEvent.dates.start.localTime || '20:00:00'}`;
+  
+  // Estimate end time (add 4 hours if not specified)
+  const start = new Date(startDate);
+  const end = new Date(start);
+  end.setHours(end.getHours() + 4);
+
+  return {
+    id: `tm_${tmEvent.id}`,
+    cityId,
+    organizerId,
+    tier: 'official' as const,
+    title: tmEvent.name,
+    shortDesc: classification?.segment?.name || classification?.genre?.name || 'Live Event',
+    longDesc: `${tmEvent.name} at ${venue?.name || 'TBA'}. ${classification?.segment?.name || ''} event.`,
+    startAt: start.toISOString(),
+    endAt: end.toISOString(),
+    venueName: venue?.name || 'Venue TBA',
+    address: venue?.address?.line1 || venue?.city?.name || '',
+    lat: venue?.location?.latitude ? parseFloat(venue.location.latitude) : 0,
+    lng: venue?.location?.longitude ? parseFloat(venue.location.longitude) : 0,
+    categories: [classification?.segment?.name || 'Music'],
+    subcategories: [classification?.genre?.name || 'Live'],
+    mediaUrls: [imageUrl],
+    ticketUrl: tmEvent.url,
+    ticketmasterId: tmEvent.id,
+    status: 'active' as const,
+    counts: {
+      likes: 0,
+      saves: 0,
+      comments: 0,
+      rsvpGoing: 0,
+      rsvpInterested: 0,
+    },
+  };
+}
+
+/**
+ * Get country code from city name (basic mapping)
+ */
+export function getCountryCodeForCity(cityName: string): string {
+  // Map city names to country codes
+  const cityCountryMap: Record<string, string> = {
+    'Berlin': 'DE',
+    'London': 'GB',
+    'New York': 'US',
+    'NYC': 'US',
+    'Tokyo': 'JP',
+    'Paris': 'FR',
+    'Amsterdam': 'NL',
+    'Barcelona': 'ES',
+    'Los Angeles': 'US',
+    'LA': 'US',
+    'Chicago': 'US',
+    'Miami': 'US',
+    'San Francisco': 'US',
+    'Seattle': 'US',
+    'Vancouver': 'CA',
+    'Calgary': 'CA',
+  };
+
+  return cityCountryMap[cityName] || 'US';
+}

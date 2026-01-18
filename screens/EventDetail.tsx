@@ -1,0 +1,304 @@
+
+import React, { useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useApp } from '../store';
+import { Badge, NeonButton, Card } from '../components/UI';
+import { 
+  ChevronLeft, Share2, MapPin, Clock, ExternalLink, 
+  MessageCircle, AlertTriangle, PlayCircle, Users, 
+  ShieldCheck, X, Check, Zap, CreditCard, Loader2,
+  ExternalLink as LinkIcon, RefreshCw
+} from 'lucide-react';
+import { format } from 'date-fns';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const TICKET_TIERS = [
+  { id: 'early', name: 'Early Bird', price: '€15.00', perks: 'Entry before 23:00' },
+  { id: 'ga', name: 'General Admission', price: '€25.00', perks: 'Standard Entry' },
+  { id: 'vip', name: 'VIP Backstage', price: '€45.00', perks: 'Dedicated Bar + Fast Track' },
+];
+
+export const EventDetail: React.FC = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { events, theme, addTicket, user, activeCity, isTicketmasterConnected } = useApp();
+  const event = events.find(e => e.id === id);
+
+  const [showTicketing, setShowTicketing] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<string | null>(null);
+  const [purchaseMode, setPurchaseMode] = useState<'native' | 'ticketmaster'>('native');
+  const [purchaseState, setPurchaseState] = useState<'idle' | 'processing' | 'success'>('idle');
+
+  if (!event) return <div className="p-20 text-center">Event not found</div>;
+
+  const now = new Date();
+  const start = new Date(event.startAt);
+  const end = new Date(event.endAt);
+  const isLive = now >= start && now <= end;
+  const isOfficial = event.tier === 'official';
+
+  const handlePurchase = async () => {
+    // If Ticketmaster mode and event has ticketmasterId, redirect to Ticketmaster
+    if (purchaseMode === 'ticketmaster' && event.ticketmasterId && event.ticketUrl) {
+      // Open Ticketmaster in new tab
+      window.open(event.ticketUrl, '_blank', 'noopener,noreferrer');
+      setShowTicketing(false);
+      return;
+    }
+
+    // Native purchase flow
+    if (!selectedTier) return;
+    setPurchaseState('processing');
+    
+    // Simulated delay for "encryption" and payment/handshake
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    const tierObj = TICKET_TIERS.find(t => t.id === selectedTier);
+    addTicket({
+      id: `TKT-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+      eventId: event.id,
+      userId: user?.id || 'guest',
+      qrCode: `IC-${Math.floor(100 + Math.random() * 900)}-${Math.floor(100 + Math.random() * 900)}`,
+      status: 'active',
+      type: tierObj?.name || 'Standard Access',
+      gate: 'Main Entry',
+      section: tierObj?.id === 'vip' ? 'Backstage' : 'Floor',
+      purchaseDate: new Date().toISOString(),
+      source: purchaseMode
+    });
+
+    setPurchaseState('success');
+    setTimeout(() => {
+      setShowTicketing(false);
+      navigate('/wallet');
+    }, 1500);
+  };
+
+  return (
+    <div className="min-h-screen pb-32 relative">
+      {/* Header Overlay */}
+      <div className="relative h-[65vh]">
+        <img src={event.mediaUrls[0]} alt={event.title} className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-[var(--background)]" />
+        
+        <div className="absolute top-12 left-6 flex gap-4">
+          <button onClick={() => navigate(-1)} className="p-3 rounded-full bg-black/50 backdrop-blur-md border border-white/10">
+            <ChevronLeft size={24} />
+          </button>
+        </div>
+
+        <div className="absolute top-12 right-6 flex gap-3">
+          <button className="p-3 rounded-full bg-black/50 backdrop-blur-md border border-white/10">
+            <Share2 size={24} />
+          </button>
+        </div>
+
+        <div className="absolute bottom-8 left-6 right-6">
+          <div className="flex flex-wrap gap-2 mb-5">
+            {isLive ? (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-600 shadow-[0_0_20px_rgba(220,38,38,0.6)] animate-pulse">
+                <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                <span className="text-[9px] font-black uppercase tracking-widest text-white">Live Pulse</span>
+              </div>
+            ) : (
+              <Badge label="Upcoming" type="tonight" />
+            )}
+            
+            {isOfficial ? (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-black font-black uppercase tracking-widest text-[9px]">
+                <ShieldCheck size={12} strokeWidth={3} />
+                Official Event
+              </div>
+            ) : (
+              <div className="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white font-black uppercase tracking-widest text-[9px]">
+                Community Tier
+              </div>
+            )}
+            
+            <Badge label={event.categories[0]} />
+          </div>
+
+          <h1 className="text-5xl font-black italic tracking-tighter leading-none uppercase mb-3">
+            {event.title}
+          </h1>
+          
+          <div className="flex items-center gap-2 opacity-60 text-[10px] font-black uppercase tracking-[0.2em]">
+            <MapPin size={14} className="text-primary" style={{ color: theme.accent }} />
+            {event.venueName} // DISTRICT: {activeCity.name} Central
+          </div>
+        </div>
+      </div>
+
+      {/* Info Section */}
+      <div className="px-6 mt-10 space-y-12">
+        <div>
+          <h3 className="text-xs uppercase font-black tracking-[0.2em] mb-5 opacity-40">The Narrative</h3>
+          <p className="leading-relaxed opacity-70 font-medium text-sm border-l-2 pl-6" style={{ borderColor: theme.accent }}>
+            {event.longDesc}
+          </p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-col gap-4">
+          <NeonButton 
+            onClick={() => setShowTicketing(true)}
+            className="w-full py-6 text-base tracking-widest uppercase italic font-black"
+          >
+            Access Key Gateway <Zap size={20} fill="currentColor" />
+          </NeonButton>
+          <div className="grid grid-cols-2 gap-4">
+            <button className="py-5 rounded-2xl font-black text-xs uppercase tracking-widest border border-white/10 active:scale-95 transition-all bg-white/5">Going</button>
+            <button className="py-5 rounded-2xl font-black text-xs uppercase tracking-widest border border-white/10 active:scale-95 transition-all bg-white/5">Interested</button>
+          </div>
+        </div>
+
+        {/* Community Pulse Link */}
+        <div className="pt-6 border-t" style={{ borderColor: theme.border }}>
+          <Link to={`/event/${event.id}/chat`} className="flex items-center justify-between w-full py-7 px-6 rounded-[2.5rem] active:scale-95 transition-all border border-white/10" style={{ backgroundColor: theme.surface }}>
+            <div className="flex items-center gap-4">
+              <div className="p-4 rounded-full bg-white/10" style={{ color: theme.accent }}>
+                <MessageCircle size={28} strokeWidth={2.5} />
+              </div>
+              <div className="text-left">
+                <span className="font-black text-sm uppercase italic block mb-0.5">The Pulse Room</span>
+                <span className="text-[9px] opacity-40 uppercase font-black tracking-widest">Active Community Chat</span>
+              </div>
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      {/* Ticketing Bottom Sheet */}
+      <AnimatePresence>
+        {showTicketing && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => purchaseState === 'idle' && setShowTicketing(false)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100]"
+            />
+            <motion.div 
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 z-[101] p-8 pb-12 rounded-t-[3rem] border-t overflow-hidden shadow-[0_-20px_50px_rgba(0,0,0,0.5)]"
+              style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+            >
+              {purchaseState === 'idle' && (
+                <div className="space-y-8">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-2xl font-black italic tracking-tighter uppercase">Access Gateway</h3>
+                      <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Choose your frequency</p>
+                    </div>
+                    <button onClick={() => setShowTicketing(false)} className="p-2 opacity-30 hover:opacity-100">
+                      <X size={24} />
+                    </button>
+                  </div>
+
+                  {/* Purchase Mode Toggle */}
+                  <div className="flex p-1 rounded-2xl bg-black/20" style={{ backgroundColor: theme.surfaceAlt }}>
+                    <button 
+                      onClick={() => setPurchaseMode('native')}
+                      className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${purchaseMode === 'native' ? 'bg-white text-black' : 'opacity-40'}`}
+                      style={purchaseMode === 'native' ? { backgroundColor: theme.accent, color: '#000' } : {}}
+                    >
+                      Neural Key
+                    </button>
+                    <button 
+                      onClick={() => setPurchaseMode('ticketmaster')}
+                      className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${purchaseMode === 'ticketmaster' ? 'bg-white text-black' : 'opacity-40'}`}
+                      style={purchaseMode === 'ticketmaster' ? { backgroundColor: '#026CDF', color: '#FFF' } : {}}
+                    >
+                      Ticketmaster Relay
+                    </button>
+                  </div>
+
+                  {purchaseMode === 'ticketmaster' && event.ticketmasterId ? (
+                    <div className="p-6 rounded-3xl border-2 text-center" style={{ backgroundColor: theme.surfaceAlt, borderColor: '#026CDF' }}>
+                      <p className="text-sm font-bold mb-2 opacity-80">Ticketmaster Event</p>
+                      <p className="text-[10px] opacity-50 uppercase tracking-widest">Click below to view available tickets and pricing on Ticketmaster</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {TICKET_TIERS.map((tier) => (
+                        <button 
+                          key={tier.id}
+                          onClick={() => setSelectedTier(tier.id)}
+                          className={`w-full p-6 rounded-3xl border-2 text-left transition-all active:scale-[0.98] flex items-center justify-between ${selectedTier === tier.id ? '' : 'opacity-60'}`}
+                          style={{ 
+                            backgroundColor: theme.surfaceAlt, 
+                            borderColor: selectedTier === tier.id ? (purchaseMode === 'ticketmaster' ? '#026CDF' : theme.accent) : 'transparent',
+                            boxShadow: selectedTier === tier.id ? `0 0 20px ${purchaseMode === 'ticketmaster' ? '#026CDF' : theme.accent}33` : 'none'
+                          }}
+                        >
+                          <div>
+                            <h4 className="font-black text-sm uppercase italic mb-1">{tier.name}</h4>
+                            <p className="text-[9px] font-bold opacity-50 uppercase tracking-widest">{tier.perks}</p>
+                          </div>
+                          <span className="text-lg font-black italic tracking-tighter">{tier.price}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <NeonButton 
+                    onClick={handlePurchase}
+                    className={`w-full py-6 text-base tracking-widest uppercase italic font-black ${purchaseMode === 'native' && !selectedTier ? 'opacity-30 pointer-events-none' : ''}`}
+                    style={purchaseMode === 'ticketmaster' ? { backgroundColor: '#026CDF', color: '#FFF' } : {}}
+                  >
+                    {purchaseMode === 'ticketmaster' 
+                      ? (event.ticketmasterId ? 'View Tickets on Ticketmaster' : 'Relay Transaction')
+                      : 'Confirm Pulse'
+                    } 
+                    {purchaseMode === 'ticketmaster' ? <LinkIcon size={20} /> : <CreditCard size={20} />}
+                  </NeonButton>
+                </div>
+              )}
+
+              {purchaseState === 'processing' && (
+                <div className="py-20 flex flex-col items-center text-center">
+                  <motion.div 
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                    className="mb-8"
+                  >
+                    {purchaseMode === 'ticketmaster' ? (
+                       <RefreshCw size={64} color="#026CDF" strokeWidth={1} />
+                    ) : (
+                       <Loader2 size={64} color={theme.accent} strokeWidth={1} />
+                    )}
+                  </motion.div>
+                  <h3 className="text-3xl font-black italic tracking-tighter uppercase mb-2">
+                    {purchaseMode === 'ticketmaster' ? 'Connecting Master Node...' : 'Syncing Neural Net...'}
+                  </h3>
+                  <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">
+                    {purchaseMode === 'ticketmaster' ? 'Secure Relay Handshake' : 'Encrypted transaction in progress'}
+                  </p>
+                </div>
+              )}
+
+              {purchaseState === 'success' && (
+                <div className="py-20 flex flex-col items-center text-center">
+                  <motion.div 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="w-20 h-20 rounded-full flex items-center justify-center mb-8 shadow-2xl"
+                    style={{ backgroundColor: purchaseMode === 'ticketmaster' ? '#026CDF' : theme.accent }}
+                  >
+                    <Check size={40} color="#FFF" strokeWidth={4} />
+                  </motion.div>
+                  <h3 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Key Acquired.</h3>
+                  <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40 italic">Check your vault for the relay key</p>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};

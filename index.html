@@ -1,0 +1,139 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#000000" id="theme-color-meta">
+  <title>Inner City</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.css" rel="stylesheet">
+  <style>
+    :root {
+      --neon-accent: #BC13FE;
+    }
+    html {
+      background-color: #000000;
+      height: 100%;
+      height: -webkit-fill-available;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      background-color: #000000;
+      min-height: 100%;
+      min-height: -webkit-fill-available;
+      transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      /* Ensure body starts at top on PWA load */
+      scroll-behavior: auto;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: env(safe-area-inset-top);
+      background-color: var(--status-bar-bg, #000000);
+      z-index: 10000;
+      pointer-events: none;
+      transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #root {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      background-color: #000000;
+      position: relative;
+      overflow-x: hidden;
+    }
+    h1, h2, h3, .brand-font {
+      font-family: 'Unbounded', sans-serif;
+      letter-spacing: -0.05em;
+    }
+    .font-display {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .safe-area-top { padding-top: env(safe-area-inset-top); }
+    .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
+    
+    ::-webkit-scrollbar { display: none; }
+    * { -ms-overflow-style: none; scrollbar-width: none; }
+
+    @keyframes pulse-neon {
+      0%, 100% { opacity: 1; filter: drop-shadow(0 0 5px var(--neon-accent)); }
+      50% { opacity: 0.7; filter: drop-shadow(0 0 15px var(--neon-accent)); }
+    }
+    .pulse-glow { animation: pulse-neon 2s infinite ease-in-out; }
+    
+    .ios-glass {
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+    }
+    
+    /* Smooth transitions for navigation items */
+    nav a, nav div {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Mapbox Overrides */
+    .mapboxgl-ctrl-bottom-right, .mapboxgl-ctrl-bottom-left { display: none !important; }
+    .custom-marker {
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+    }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.12.0",
+    "framer-motion": "https://esm.sh/framer-motion@^12.26.2",
+    "date-fns": "https://esm.sh/date-fns@^4.1.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+  <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
+<script>
+  // Fix for PWA home screen: ensure page starts at top
+  (function() {
+    // Scroll to top immediately
+    window.scrollTo(0, 0);
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+    
+    // Also handle after a short delay to catch any late rendering
+    setTimeout(function() {
+      window.scrollTo(0, 0);
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
+    }, 100);
+    
+    // Handle orientation changes
+    window.addEventListener('orientationchange', function() {
+      setTimeout(function() {
+        window.scrollTo(0, 0);
+        document.body.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
+      }, 100);
+    });
+  })();
+</script>
+</body>
+</html>
