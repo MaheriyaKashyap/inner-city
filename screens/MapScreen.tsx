@@ -6,6 +6,7 @@ import { MapPin, Search, Filter, Navigation, Compass, X, AlertCircle, Zap, Map }
 import { Badge, Card } from '../components/UI';
 import { Link } from 'react-router-dom';
 import mapboxgl from 'mapbox-gl';
+import { Event } from '../types';
 
 const MAPBOX_TOKEN = (import.meta as any).env?.VITE_MAPBOX_ACCESS_TOKEN || 'pk.eyJ1Ijoiam9zaHVhcm9hZGVyIiwiYSI6ImNta2l4MzduaTEyYzkzZXEzdHY5dmlxdDEifQ.Ch-Yoo2bvEGrdcr3ph_MaQ';
 
@@ -150,14 +151,14 @@ export const MapScreen: React.FC = () => {
   }, [events, activeCity.id]);
   
   const selectedEvent = events.find(e => e.id === selectedEventId);
-  const [selectedCluster, setSelectedCluster] = useState<{ location: { lat: number; lng: number }; events: typeof cityEvents } | null>(null);
+  const [selectedCluster, setSelectedCluster] = useState<{ location: { lat: number; lng: number }; events: Event[] } | null>(null);
 
   // Group events by location (events within ~20 meters are considered same location)
-  const groupEventsByLocation = (events: typeof cityEvents) => {
+  const groupEventsByLocation = (events: Event[]) => {
     try {
       if (!events || events.length === 0) return [];
       
-      const groups: Map<string, typeof cityEvents> = new Map();
+      const groups: Map<string, Event[]> = new Map();
       const LOCATION_THRESHOLD = 0.00018; // ~20 meters in degrees
 
       events.forEach(event => {
@@ -220,7 +221,7 @@ export const MapScreen: React.FC = () => {
           console.warn('Error creating group entry:', e);
           return null;
         }
-      }).filter((group): group is { location: { lat: number; lng: number }; events: typeof cityEvents } => group !== null);
+      }).filter((group): group is { location: { lat: number; lng: number }; events: Event[] } => group !== null);
     } catch (error) {
       console.error('Error in groupEventsByLocation:', error);
       return [];
