@@ -134,8 +134,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (mounted) {
         console.warn('Auth check timeout - setting loading to false');
         setIsLoadingUser(false);
+        // If we timeout, assume no user is logged in
+        if (!user) {
+          setUser(null);
+        }
       }
-    }, 5000); // 5 second timeout
+    }, 3000); // 3 second timeout (reduced from 5)
 
     // Check for existing session
     supabase.auth.getSession()
@@ -151,7 +155,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         
         if (session?.user) {
-          loadUserProfile(session.user.id).finally(() => {
+          loadUserProfile(session.user.id).catch((err) => {
+            console.error('Error loading user profile:', err);
+            if (mounted) {
+              setIsLoadingUser(false);
+            }
+          }).finally(() => {
             if (mounted) {
               clearTimeout(timeoutId);
             }
@@ -175,7 +184,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       if (session?.user) {
         // Always load profile on auth state change to ensure it's up to date
-        await loadUserProfile(session.user.id);
+        try {
+          await loadUserProfile(session.user.id);
+        } catch (err) {
+          console.error('Error in auth state change handler:', err);
+          if (mounted) {
+            setIsLoadingUser(false);
+          }
+        }
       } else {
         setUser(null);
         setIsLoadingUser(false);

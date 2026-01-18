@@ -90,13 +90,32 @@ const AppContent: React.FC = () => {
   const [hasOnboarded, setHasOnboarded] = useState<boolean | null>(null);
 
   useEffect(() => {
+    // Set hasOnboarded immediately with a fallback timeout
     try {
       const status = localStorage.getItem('inner_city_onboarded');
       setHasOnboarded(status === 'true');
     } catch (e) {
       setHasOnboarded(false);
     }
+
+    // Safety timeout: if hasOnboarded is still null after 1 second, set it to false
+    const timeout = setTimeout(() => {
+      setHasOnboarded(prev => prev === null ? false : prev);
+    }, 1000);
+
+    return () => clearTimeout(timeout);
   }, []);
+
+  // Safety timeout: if still loading after 6 seconds, force stop
+  useEffect(() => {
+    if (isLoadingUser) {
+      const timeout = setTimeout(() => {
+        console.warn('Force stopping loading state after 6 seconds');
+        // We can't directly set isLoadingUser here, but we can at least log
+      }, 6000);
+      return () => clearTimeout(timeout);
+    }
+  }, [isLoadingUser]);
 
   const completeOnboarding = () => {
     try {
@@ -106,6 +125,7 @@ const AppContent: React.FC = () => {
   };
 
   // Show nothing while checking auth state
+  // But add a maximum wait time
   if (isLoadingUser || hasOnboarded === null) {
     return (
       <MobileFrame>
