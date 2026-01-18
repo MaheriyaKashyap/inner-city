@@ -37,7 +37,44 @@ Topics have been added via CLI. To verify or add more:
 2. Click the gear icon ⚙️ next to "About"
 3. Add topics: `react`, `typescript`, `vite`, `supabase`, `vercel`, `event-discovery`, `ticketmaster`, `eventbrite`, `pwa`, `underground-events`
 
-### 3. GitHub Actions Secrets
+### 3. Add CI Workflow
+
+Due to OAuth scope limitations, the CI workflow must be added manually:
+
+1. Go to: https://github.com/joshuadevelopsgames/inner-city
+2. Click "Add file" → "Create new file"
+3. Path: `.github/workflows/ci.yml`
+4. Copy the contents from the `ci.yml` file in this repo (or see below)
+5. Click "Commit new file"
+
+**CI Workflow Content:**
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+```
+
+### 4. GitHub Actions Secrets
 
 For CI to work, add these secrets in GitHub:
 
@@ -50,7 +87,7 @@ For CI to work, add these secrets in GitHub:
    - (Optional) `VITE_MAPBOX_ACCESS_TOKEN`
    - (Optional) `VITE_EVENTBRITE_API_TOKEN`
 
-### 4. Repository Description
+### 5. Repository Description
 
 Update the repository description on GitHub:
 
