@@ -90,16 +90,29 @@ const AppContent: React.FC = () => {
   const [hasOnboarded, setHasOnboarded] = useState<boolean | null>(null);
 
   useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:92',message:'hasOnboarded useEffect started',data:{currentValue:hasOnboarded},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
     // Set hasOnboarded immediately with a fallback timeout
     try {
       const status = localStorage.getItem('inner_city_onboarded');
-      setHasOnboarded(status === 'true');
+      const value = status === 'true';
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:96',message:'Setting hasOnboarded from localStorage',data:{status,value},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+      setHasOnboarded(value);
     } catch (e) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:98',message:'localStorage error, setting hasOnboarded false',data:{error:String(e)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       setHasOnboarded(false);
     }
 
     // Safety timeout: if hasOnboarded is still null after 1 second, set it to false
     const timeout = setTimeout(() => {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:102',message:'hasOnboarded timeout fired',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       setHasOnboarded(prev => prev === null ? false : prev);
     }, 1000);
 
@@ -126,6 +139,11 @@ const AppContent: React.FC = () => {
 
   // Show nothing while checking auth state
   // But add a maximum wait time
+  // #region agent log
+  useEffect(() => {
+    fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:109',message:'Loading check',data:{isLoadingUser,hasOnboarded,willShowLoading:isLoadingUser || hasOnboarded === null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,D,E,F'})}).catch(()=>{});
+  }, [isLoadingUser, hasOnboarded]);
+  // #endregion
   if (isLoadingUser || hasOnboarded === null) {
     return (
       <MobileFrame>

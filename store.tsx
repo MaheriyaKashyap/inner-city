@@ -126,50 +126,91 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Initialize auth state and load user
   useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:128',message:'Auth useEffect started',data:{isLoadingUser},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,E,F'})}).catch(()=>{});
+    // #endregion
     let mounted = true;
     let timeoutId: NodeJS.Timeout;
 
     // Set a timeout to ensure loading state doesn't hang forever
     timeoutId = setTimeout(() => {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:133',message:'Timeout fired',data:{mounted,hasUser:!!user},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       if (mounted) {
         console.warn('Auth check timeout - setting loading to false');
         setIsLoadingUser(false);
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:137',message:'setIsLoadingUser(false) called from timeout',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         // If we timeout, assume no user is logged in
         if (!user) {
           setUser(null);
         }
       }
     }, 3000); // 3 second timeout (reduced from 5)
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:142',message:'Timeout set',data:{timeoutId:!!timeoutId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
 
     // Check for existing session
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:145',message:'getSession() called',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     supabase.auth.getSession()
       .then(({ data: { session }, error }) => {
-        if (!mounted) return;
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:147',message:'getSession() resolved',data:{mounted,hasError:!!error,hasSession:!!session,hasUser:!!session?.user},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        if (!mounted) {
+          // #region agent log
+          fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:149',message:'Early return: not mounted',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+          // #endregion
+          return;
+        }
         
         clearTimeout(timeoutId);
         
         if (error) {
           console.error('Error getting session:', error);
+          // #region agent log
+          fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:153',message:'Session error, setting loading false',data:{error:error.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          // #endregion
           setIsLoadingUser(false);
           return;
         }
         
         if (session?.user) {
+          // #region agent log
+          fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:158',message:'Calling loadUserProfile',data:{userId:session.user.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+          // #endregion
           loadUserProfile(session.user.id).catch((err) => {
             console.error('Error loading user profile:', err);
+            // #region agent log
+            fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:160',message:'loadUserProfile error caught',data:{mounted,error:err.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
             if (mounted) {
               setIsLoadingUser(false);
             }
           }).finally(() => {
+            // #region agent log
+            fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:164',message:'loadUserProfile finally block',data:{mounted},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
             if (mounted) {
               clearTimeout(timeoutId);
             }
           });
         } else {
+          // #region agent log
+          fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:169',message:'No session, setting loading false',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          // #endregion
           setIsLoadingUser(false);
         }
       })
       .catch((error) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:172',message:'getSession() rejected',data:{mounted,error:error.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
         if (!mounted) return;
         console.error('Failed to get session:', error);
         clearTimeout(timeoutId);
@@ -178,7 +219,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:180',message:'Auth state change event',data:{mounted,event,hasSession:!!session,hasUser:!!session?.user},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+      if (!mounted) {
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:182',message:'Auth change: not mounted, returning',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E,F'})}).catch(()=>{});
+        // #endregion
+        return;
+      }
       
       clearTimeout(timeoutId);
       
@@ -188,11 +237,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           await loadUserProfile(session.user.id);
         } catch (err) {
           console.error('Error in auth state change handler:', err);
+          // #region agent log
+          fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:190',message:'Auth change error, setting loading false',data:{error:err.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+          // #endregion
           if (mounted) {
             setIsLoadingUser(false);
           }
         }
       } else {
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:196',message:'No session in auth change, setting loading false',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
         setUser(null);
         setIsLoadingUser(false);
       }
@@ -206,6 +261,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const loadUserProfile = async (userId: string) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:192',message:'loadUserProfile started',data:{userId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     try {
       // Fetch profile and auth user in parallel for better performance
       const [profileResult, authResult] = await Promise.all([
@@ -219,10 +277,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const { data: profile, error } = profileResult;
       const { data: { user: authUser }, error: authError } = authResult;
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:204',message:'Profile and auth fetched',data:{hasProfile:!!profile,hasError:!!error,hasAuthUser:!!authUser,hasAuthError:!!authError},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
 
       // If auth user fetch failed, we can't proceed
       if (authError || !authUser) {
         console.error('Failed to get auth user:', authError);
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:208',message:'Auth user fetch failed, setting loading false',data:{authError:authError?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         setIsLoadingUser(false);
         return;
       }
@@ -252,6 +316,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (profile) {
         const appUser = convertProfileToUser(profile, authUser);
         setUser(appUser);
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:198',message:'Profile found, user set',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
       } else {
         // Profile doesn't exist yet but user is authenticated
         // Create a minimal user object to allow navigation
@@ -272,12 +339,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           createdAt: authUser.created_at || new Date().toISOString(),
         };
         setUser(minimalUser);
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:220',message:'No profile, minimal user set',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
       }
     } catch (error) {
       console.error('Failed to load user profile:', error);
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:222',message:'loadUserProfile catch block',data:{error:error instanceof Error ? error.message : String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       // Don't set user to null on error - allow them to continue
     } finally {
       // Always set loading to false, even if there were errors
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:226',message:'loadUserProfile finally block, setting loading false',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       setIsLoadingUser(false);
     }
   };
