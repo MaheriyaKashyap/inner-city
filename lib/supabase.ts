@@ -33,11 +33,29 @@ export async function invokeSupabaseFunction<T = any>(
   body?: any
 ): Promise<T> {
   try {
+    // Get the current session to include auth headers
+    const { data: { session } } = await supabase.auth.getSession();
+    
     const { data, error } = await supabase.functions.invoke(functionName, {
       body,
+      headers: {
+        Authorization: session ? `Bearer ${session.access_token}` : '',
+      },
     });
 
     if (error) {
+      // If 401, try without auth (for public functions)
+      if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+        const { data: retryData, error: retryError } = await supabase.functions.invoke(functionName, {
+          body,
+        });
+        
+        if (retryError) {
+          throw retryError;
+        }
+        
+        return retryData as T;
+      }
       throw error;
     }
 

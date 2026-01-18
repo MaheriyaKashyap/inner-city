@@ -130,20 +130,41 @@ export async function getFeedPosts(
   limit: number = 20,
   offset: number = 0
 ): Promise<UserPost[]> {
+  // user_posts.user_id references auth.users, not profiles, so we need to join manually
   let query = supabase
     .from('user_posts')
     .select(`
       *,
-      profiles!user_posts_user_id_fkey(*),
       events(*)
     `)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
+  if (userId) {
+    query = query.eq('user_id', userId);
+  }
+
   const { data, error } = await query;
 
   if (error) throw error;
-  return (data || []).map(transformPost);
+  
+  // Fetch profiles separately and merge
+  if (data && data.length > 0) {
+    const userIds = [...new Set(data.map((post: any) => post.user_id))];
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('id', userIds);
+    
+    const profilesMap = new Map(profiles?.map((p: any) => [p.id, p]) || []);
+    
+    return data.map((post: any) => {
+      const profile = profilesMap.get(post.user_id);
+      return transformPost({ ...post, profiles: profile });
+    });
+  }
+  
+  return [];
 }
 
 export async function getEventPosts(eventId: string): Promise<UserPost[]> {
@@ -151,14 +172,30 @@ export async function getEventPosts(eventId: string): Promise<UserPost[]> {
     .from('user_posts')
     .select(`
       *,
-      profiles!user_posts_user_id_fkey(*),
       events(*)
     `)
     .eq('event_id', eventId)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return (data || []).map(transformPost);
+  
+  // Fetch profiles separately and merge
+  if (data && data.length > 0) {
+    const userIds = [...new Set(data.map((post: any) => post.user_id))];
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('id', userIds);
+    
+    const profilesMap = new Map(profiles?.map((p: any) => [p.id, p]) || []);
+    
+    return data.map((post: any) => {
+      const profile = profilesMap.get(post.user_id);
+      return transformPost({ ...post, profiles: profile });
+    });
+  }
+  
+  return [];
 }
 
 export async function getUserPosts(userId: string): Promise<UserPost[]> {
@@ -166,14 +203,25 @@ export async function getUserPosts(userId: string): Promise<UserPost[]> {
     .from('user_posts')
     .select(`
       *,
-      profiles!user_posts_user_id_fkey(*),
       events(*)
     `)
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return (data || []).map(transformPost);
+  
+  // Fetch profile separately and merge
+  if (data && data.length > 0) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    return data.map((post: any) => transformPost({ ...post, profiles: profile }));
+  }
+  
+  return [];
 }
 
 export async function likePost(postId: string, userId: string): Promise<void> {
