@@ -30,7 +30,7 @@
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/inner-city.git
+   git clone https://github.com/joshuadevelopsgames/inner-city.git
    cd inner-city
    ```
 
