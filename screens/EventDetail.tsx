@@ -7,7 +7,8 @@ import {
   ChevronLeft, Share2, MapPin, Clock, ExternalLink, 
   MessageCircle, AlertTriangle, PlayCircle, Users, 
   ShieldCheck, X, Check, Zap, CreditCard, Loader2,
-  ExternalLink as LinkIcon, RefreshCw, UserPlus, Heart
+  ExternalLink as LinkIcon, RefreshCw, UserPlus, Heart,
+  DollarSign, Calendar, Phone, Car, Wheelchair, Info, Ticket
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -324,6 +325,154 @@ export const EventDetail: React.FC = () => {
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
+        )}
+
+        {/* Event Details Section */}
+        {(event.priceRanges || event.venueDetails || event.promoter || event.ageRestrictions || event.ticketLimit || event.sales) && (
+          <div className="pt-6 border-t space-y-6" style={{ borderColor: theme.border }}>
+            <h3 className="text-xs uppercase font-black tracking-[0.2em] opacity-40">Event Details</h3>
+            
+            {/* Pricing */}
+            {event.priceRanges && event.priceRanges.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign size={16} style={{ color: theme.accent }} />
+                  <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Pricing</span>
+                </div>
+                {event.priceRanges.map((range, idx) => (
+                  <div key={idx} className="pl-6 text-sm opacity-70">
+                    {range.type === 'standard' ? 'Standard' : range.type}: {range.currency} {range.min.toFixed(2)}
+                    {range.max !== range.min && ` - ${range.max.toFixed(2)}`}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Promoter */}
+            {event.promoter && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <UserPlus size={16} style={{ color: theme.accent }} />
+                  <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Promoter</span>
+                </div>
+                <div className="pl-6 text-sm opacity-70">{event.promoter.name}</div>
+              </div>
+            )}
+
+            {/* Age Restrictions */}
+            {event.ageRestrictions && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle size={16} style={{ color: theme.accent }} />
+                  <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Age Restrictions</span>
+                </div>
+                <div className="pl-6 text-sm opacity-70">
+                  {event.ageRestrictions.legalAgeEnforced ? 'Age restrictions enforced' : 'All ages welcome'}
+                  {event.ageRestrictions.minAge && ` (${event.ageRestrictions.minAge}+)`}
+                </div>
+              </div>
+            )}
+
+            {/* Ticket Sales */}
+            {event.sales && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <Calendar size={16} style={{ color: theme.accent }} />
+                  <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Ticket Sales</span>
+                </div>
+                <div className="pl-6 text-sm opacity-70 space-y-1">
+                  {event.sales.publicStart && (
+                    <div>Public sale starts: {format(new Date(event.sales.publicStart), 'PPp')}</div>
+                  )}
+                  {event.sales.publicEnd && (
+                    <div>Public sale ends: {format(new Date(event.sales.publicEnd), 'PPp')}</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Ticket Limit */}
+            {event.ticketLimit && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <Ticket size={16} style={{ color: theme.accent }} />
+                  <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Ticket Limit</span>
+                </div>
+                <div className="pl-6 text-sm opacity-70">{event.ticketLimit.info}</div>
+              </div>
+            )}
+
+            {/* Venue Details */}
+            {event.venueDetails && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Info size={16} style={{ color: theme.accent }} />
+                  <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Venue Information</span>
+                </div>
+                
+                {event.venueDetails.phoneNumber && (
+                  <div className="space-y-1 pl-6">
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60">
+                      <Phone size={12} />
+                      Phone
+                    </div>
+                    <div className="text-sm opacity-70">{event.venueDetails.phoneNumber}</div>
+                  </div>
+                )}
+
+                {event.venueDetails.openHours && (
+                  <div className="space-y-1 pl-6">
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60">
+                      <Clock size={12} />
+                      Box Office Hours
+                    </div>
+                    <div className="text-sm opacity-70">{event.venueDetails.openHours}</div>
+                  </div>
+                )}
+
+                {event.venueDetails.parkingDetail && (
+                  <div className="space-y-1 pl-6">
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60">
+                      <Car size={12} />
+                      Parking
+                    </div>
+                    <div className="text-sm opacity-70">{event.venueDetails.parkingDetail}</div>
+                  </div>
+                )}
+
+                {event.venueDetails.accessibleSeatingDetail && (
+                  <div className="space-y-1 pl-6">
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60">
+                      <Wheelchair size={12} />
+                      Accessibility
+                    </div>
+                    <div className="text-sm opacity-70">{event.venueDetails.accessibleSeatingDetail}</div>
+                  </div>
+                )}
+
+                {event.venueDetails.generalInfo && (
+                  <div className="space-y-1 pl-6">
+                    <div className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">General Info</div>
+                    <div className="text-sm opacity-70">{event.venueDetails.generalInfo}</div>
+                  </div>
+                )}
+
+                {event.venueDetails.childRule && (
+                  <div className="space-y-1 pl-6">
+                    <div className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Child Policy</div>
+                    <div className="text-sm opacity-70">{event.venueDetails.childRule}</div>
+                  </div>
+                )}
+
+                {event.venueDetails.acceptedPayment && (
+                  <div className="space-y-1 pl-6">
+                    <div className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Accepted Payment</div>
+                    <div className="text-sm opacity-70">{event.venueDetails.acceptedPayment}</div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

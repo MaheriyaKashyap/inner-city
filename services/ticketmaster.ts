@@ -372,6 +372,21 @@ export function convertTicketmasterEventToInnerCity(
   const end = new Date(start);
   end.setHours(end.getHours() + 4);
 
+  // Get all images, not just the first one
+  const allImages = tmEvent.images
+    ?.filter(img => !img.fallback)
+    .map(img => img.url) || [imageUrl];
+
+  // Build full address
+  const fullAddress = [
+    venue?.address?.line1,
+    venue?.address?.line2,
+    venue?.city?.name,
+    venue?.state?.name,
+    venue?.postalCode,
+    venue?.country?.name
+  ].filter(Boolean).join(', ');
+
   return {
     id: `tm_${tmEvent.id}`,
     cityId,
@@ -379,16 +394,18 @@ export function convertTicketmasterEventToInnerCity(
     tier: 'official' as const,
     title: tmEvent.name,
     shortDesc: classification?.segment?.name || classification?.genre?.name || 'Live Event',
-    longDesc: `${tmEvent.name} at ${venue?.name || 'TBA'}. ${classification?.segment?.name || ''} event.`,
+    longDesc: tmEvent._embedded?.attractions?.[0]?.name 
+      ? `${tmEvent.name} featuring ${tmEvent._embedded.attractions[0].name} at ${venue?.name || 'TBA'}. ${classification?.segment?.name || ''} event.`
+      : `${tmEvent.name} at ${venue?.name || 'TBA'}. ${classification?.segment?.name || ''} event.`,
     startAt: start.toISOString(),
     endAt: end.toISOString(),
     venueName: venue?.name || 'Venue TBA',
-    address: venue?.address?.line1 || venue?.city?.name || '',
+    address: fullAddress || venue?.address?.line1 || venue?.city?.name || '',
     lat: venue?.location?.latitude ? parseFloat(venue.location.latitude) : 0,
     lng: venue?.location?.longitude ? parseFloat(venue.location.longitude) : 0,
     categories: [classification?.segment?.name || 'Music'],
-    subcategories: [classification?.genre?.name || 'Live'],
-    mediaUrls: [imageUrl],
+    subcategories: [classification?.genre?.name || classification?.subGenre?.name || 'Live'],
+    mediaUrls: allImages.length > 0 ? allImages : [imageUrl],
     ticketUrl: tmEvent.url,
     ticketmasterId: tmEvent.id,
     status: 'active' as const,
@@ -399,6 +416,40 @@ export function convertTicketmasterEventToInnerCity(
       rsvpGoing: 0,
       rsvpInterested: 0,
     },
+    // Additional Ticketmaster fields
+    priceRanges: tmEvent.priceRanges?.map(pr => ({
+      type: pr.type,
+      currency: pr.currency,
+      min: pr.min,
+      max: pr.max,
+    })),
+    ageRestrictions: tmEvent.ageRestrictions ? {
+      legalAgeEnforced: tmEvent.ageRestrictions.legalAgeEnforced,
+    } : undefined,
+    ticketLimit: tmEvent.ticketLimit ? {
+      info: tmEvent.ticketLimit.info,
+    } : undefined,
+    promoter: tmEvent.promoter || tmEvent.promoters?.[0] ? {
+      id: tmEvent.promoter?.id || tmEvent.promoters?.[0]?.id || '',
+      name: tmEvent.promoter?.name || tmEvent.promoters?.[0]?.name || '',
+    } : undefined,
+    venueDetails: venue ? {
+      boxOfficeInfo: venue.boxOfficeInfo?.phoneNumberDetail || venue.boxOfficeInfo?.openHoursDetail,
+      parkingDetail: venue.parkingDetail,
+      accessibleSeatingDetail: venue.accessibleSeatingDetail,
+      generalInfo: venue.generalInfo?.generalRule,
+      childRule: venue.generalInfo?.childRule,
+      phoneNumber: venue.boxOfficeInfo?.phoneNumberDetail,
+      openHours: venue.boxOfficeInfo?.openHoursDetail,
+      acceptedPayment: venue.boxOfficeInfo?.acceptedPaymentDetail,
+      willCall: venue.boxOfficeInfo?.willCallDetail,
+    } : undefined,
+    sales: tmEvent.sales ? {
+      publicStart: tmEvent.sales.public.startDateTime,
+      publicEnd: tmEvent.sales.public.endDateTime,
+    } : undefined,
+    timezone: tmEvent.dates.timezone || venue?.timezone,
+    locale: tmEvent.locale,
   };
 }
 

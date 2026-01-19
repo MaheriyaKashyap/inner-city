@@ -425,7 +425,7 @@ export const Feed: React.FC = () => {
         <div className="flex-1 min-w-0">
           <span className="text-[10px] font-black tracking-[0.4em] uppercase opacity-40 block mb-1">Gateway // {activeCity.country}</span>
           <h2 
-            className="font-black tracking-tighter leading-none uppercase italic truncate"
+            className={`font-black tracking-tighter leading-none uppercase italic ${activeCity.name.length > 18 ? 'truncate' : ''}`}
             style={{ fontSize: 'clamp(1.5rem, 5vw + 1rem, 3rem)' }}
           >
             {activeCity.name}
@@ -522,14 +522,14 @@ export const Feed: React.FC = () => {
 
       {/* Background Events - Reduced Opacity */}
       {displayEvents.background.length > 0 && (
-        <div className="flex flex-col opacity-40">
+        <div className="flex flex-col">
           <div className="px-6 mb-4">
             <h3 className="text-[9px] font-black uppercase tracking-[0.3em] opacity-60">
               More Events
             </h3>
           </div>
           {displayEvents.background.map(event => (
-            <div key={event.id} className="opacity-60 hover:opacity-100 transition-opacity">
+            <div key={event.id} className="opacity-75 hover:opacity-100 transition-opacity">
               <EventCard event={event} />
             </div>
           ))}

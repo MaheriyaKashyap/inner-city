@@ -59,6 +59,7 @@ export interface Event {
   mediaUrls: string[];
   ticketUrl?: string;
   ticketmasterId?: string; // New field for TM integration
+  eventbriteId?: string; // Eventbrite event ID
   status: ContentStatus;
   counts: {
     likes: number;
@@ -67,6 +68,44 @@ export interface Event {
     rsvpGoing: number;
     rsvpInterested: number;
   };
+  // Additional Ticketmaster/Eventbrite fields
+  priceRanges?: Array<{
+    type: string;
+    currency: string;
+    min: number;
+    max: number;
+  }>;
+  ageRestrictions?: {
+    legalAgeEnforced: boolean;
+    minAge?: number;
+  };
+  ticketLimit?: {
+    info: string;
+  };
+  promoter?: {
+    id: string;
+    name: string;
+  };
+  venueDetails?: {
+    boxOfficeInfo?: string;
+    parkingDetail?: string;
+    accessibleSeatingDetail?: string;
+    generalInfo?: string;
+    childRule?: string;
+    phoneNumber?: string;
+    openHours?: string;
+    acceptedPayment?: string;
+    willCall?: string;
+  };
+  sales?: {
+    publicStart?: string;
+    publicEnd?: string;
+  };
+  timezone?: string;
+  locale?: string;
+  onlineEvent?: boolean;
+  capacity?: number;
+  currency?: string;
 }
 
 export interface Ticket {

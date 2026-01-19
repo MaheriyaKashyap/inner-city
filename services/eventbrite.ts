@@ -277,6 +277,29 @@ export function convertEventbriteEventToInnerCity(
     tier = 'underground';
   }
 
+  // Build full address
+  const addressParts = [
+    ebEvent.venue?.address?.address_1,
+    ebEvent.venue?.address?.address_2,
+    ebEvent.venue?.address?.city,
+    ebEvent.venue?.address?.region,
+    ebEvent.venue?.address?.postal_code,
+    ebEvent.venue?.address?.country
+  ].filter(Boolean);
+  const fullAddress = addressParts.length > 0 
+    ? addressParts.join(', ')
+    : ebEvent.venue?.address?.localized_area_display || '';
+
+  // Extract price range from ticket availability
+  const priceRanges = ebEvent.ticket_availability?.minimum_ticket_price && ebEvent.ticket_availability?.maximum_ticket_price
+    ? [{
+        type: 'standard',
+        currency: ebEvent.currency || 'USD',
+        min: ebEvent.ticket_availability.minimum_ticket_price.value / 100, // Convert cents to dollars
+        max: ebEvent.ticket_availability.maximum_ticket_price.value / 100,
+      }]
+    : undefined;
+
   return {
     id: `eb_${ebEvent.id}`,
     cityId,
@@ -288,9 +311,7 @@ export function convertEventbriteEventToInnerCity(
     startAt: startDate.toISOString(),
     endAt: endDate.toISOString(),
     venueName: ebEvent.venue?.name || (ebEvent.online_event ? 'Online Event' : 'Venue TBA'),
-    address: ebEvent.venue?.address?.localized_area_display || 
-             `${ebEvent.venue?.address?.address_1 || ''} ${ebEvent.venue?.address?.city || ''}`.trim() ||
-             '',
+    address: fullAddress,
     lat: ebEvent.venue?.latitude ? parseFloat(ebEvent.venue.latitude) : 0,
     lng: ebEvent.venue?.longitude ? parseFloat(ebEvent.venue.longitude) : 0,
     categories: [ebEvent.category?.name || 'General'],
@@ -306,6 +327,16 @@ export function convertEventbriteEventToInnerCity(
       rsvpGoing: 0,
       rsvpInterested: 0,
     },
+    // Additional Eventbrite fields
+    priceRanges,
+    onlineEvent: ebEvent.online_event,
+    capacity: ebEvent.capacity,
+    currency: ebEvent.currency,
+    promoter: ebEvent.organizer ? {
+      id: ebEvent.organizer.id,
+      name: ebEvent.organizer.name,
+    } : undefined,
+    timezone: ebEvent.start.timezone,
   };
 }
 
@@ -379,10 +410,90 @@ export const CITY_ORGANIZATIONS: Record<string, string[]> = {
     '29395158761'
   ],
   'London': [
-    // Add Eventbrite organization IDs for London
+    '1687814311173',
+    '17842962510',
+    '91946701843',
+    '35982868173',
+    '75640028603',
+    '40849910643',
+    '17505726266',
+    '39847240743',
+    '2900438939',
+    '19991528927',
+    '37663218863',
+    '34524611333',
+    '31358530829',
+    '17825575648',
+    '80426088133',
+    '51402283783',
+    '16457805814',
+    '69316048463',
+    '2565562096',
+    '28800164755',
+    '17663639978',
+    '120787346991',
+    '17966121631',
+    '18520402627',
+    '12003278880',
+    '109891506291',
+    '17225587929',
+    '27647524359',
+    '6181738369',
+    '30505316848',
+    '110370193811',
+    '33892591951',
+    '87783199923',
+    '12803748215',
+    '5887911881',
+    '120354377271',
+    '35795829',
+    '8559642994',
+    '93695911193',
+    '98926535041',
+    '18565949237'
   ],
   'New York': [
-    // Add Eventbrite organization IDs for NYC
+    '13957631249',
+    '86136754923',
+    '9789186973',
+    '6140247955',
+    '8012469404',
+    '5494940201',
+    '3289538704',
+    '50978487833',
+    '2045320721',
+    '6807580813',
+    '17106924056',
+    '31025401131',
+    '60036372273',
+    '13659290380',
+    '40146128413',
+    '13877447867',
+    '13794689586',
+    '1646273810',
+    '58374016673',
+    '12617770420',
+    '60937627203',
+    '35701633213',
+    '71032912973',
+    '120761670505',
+    '115382596731',
+    '17225587929',
+    '27647524359',
+    '6181738369',
+    '30505316848',
+    '110370193811',
+    '33892591951',
+    '87783199923',
+    '12803748215',
+    '33666047161',
+    '93715728953',
+    '4279966505',
+    '66147754573',
+    '109511595401',
+    '105655500371',
+    '110999558741',
+    '120805881833'
   ],
   'Los Angeles': [
     // Add Eventbrite organization IDs for LA
@@ -487,6 +598,48 @@ export const CITY_ORGANIZATIONS: Record<string, string[]> = {
     '8436980324',
     '40276504703'
   ],
+  'Tokyo': [
+    '108288342151',
+    '30753745762',
+    '109788540541',
+    '72310423383',
+    '55778202283',
+    '18060231823',
+    '17262732131',
+    '33768011953',
+    '2306625137',
+    '50013368963',
+    '112556682841',
+    '12448110053',
+    '30273710876',
+    '30164999184',
+    '2319663773',
+    '25052159091',
+    '120129604801',
+    '14672487458',
+    '29827792143',
+    '42742154273',
+    '120862009999',
+    '120664671230',
+    '120810054841',
+    '120801069380',
+    '55116119923',
+    '120873920795',
+    '68239424483',
+    '26470685753',
+    '120780505433',
+    '30368570276',
+    '109361159671',
+    '48778202903',
+    '108066308721',
+    '111612721041',
+    '20086254396',
+    '120738261783',
+    '114950734711',
+    '10941324876',
+    '11123434784',
+    '72007890373'
+  ],
 };
 
 /**
@@ -500,7 +653,24 @@ export async function searchEventsByCity(
   } = {}
 ): Promise<EventbriteEvent[]> {
   const organizations = CITY_ORGANIZATIONS[cityName] || [];
+  
+  // Log warning if no organizations found for city
+  if (organizations.length === 0) {
+    if (import.meta.env.DEV) {
+      console.warn(`No Eventbrite organizations configured for city: ${cityName}`);
+    }
+    return [];
+  }
+
   const allEvents: EventbriteEvent[] = [];
+  const token = getApiToken();
+  
+  if (!token) {
+    if (import.meta.env.DEV) {
+      console.warn('Eventbrite API token not configured. Set VITE_EVENTBRITE_API_TOKEN in your environment.');
+    }
+    return [];
+  }
 
   for (const orgId of organizations) {
     try {
@@ -508,16 +678,22 @@ export async function searchEventsByCity(
         status: options.status || 'live',
         page_size: options.page_size || 20,
       });
-      if (response && response.events) {
+      if (response && response.events && response.events.length > 0) {
         allEvents.push(...response.events);
+        if (import.meta.env.DEV) {
+          console.log(`Eventbrite: Found ${response.events.length} events for org ${orgId} in ${cityName}`);
+        }
       }
     } catch (error) {
-      // Silently continue - errors are already handled in searchEventsByOrganization
-      // Only log in development
+      // Log errors in development
       if (import.meta.env.DEV) {
-        console.warn(`Failed to fetch events for organization ${orgId}:`, error);
+        console.warn(`Failed to fetch events for organization ${orgId} in ${cityName}:`, error);
       }
     }
+  }
+
+  if (import.meta.env.DEV && allEvents.length === 0 && organizations.length > 0) {
+    console.warn(`Eventbrite: No events found for ${cityName} despite ${organizations.length} organizations configured. Check API token and organization IDs.`);
   }
 
   return allEvents;
