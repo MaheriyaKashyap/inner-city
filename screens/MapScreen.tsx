@@ -888,6 +888,10 @@ export const MapScreen: React.FC = () => {
 
             const el = document.createElement('div');
             el.className = 'custom-marker';
+            el.style.background = 'transparent';
+            el.style.border = 'none';
+            el.style.borderRadius = '50%';
+            el.style.overflow = 'hidden';
             
             // For clusters, use the most prominent event for styling
             const primaryEvent = groupEvents.find(e => e.tier === 'official') || groupEvents[0];
