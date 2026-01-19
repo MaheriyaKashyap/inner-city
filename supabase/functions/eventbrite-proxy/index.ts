@@ -28,18 +28,9 @@ serve(async (req) => {
   }
 
   try {
-    // Log request for debugging
-    const authHeader = req.headers.get('authorization');
-    const apikeyHeader = req.headers.get('apikey');
-    console.log('Eventbrite proxy called:', {
-      hasAuth: !!authHeader,
-      hasApikey: !!apikeyHeader,
-      hasToken: !!EVENTBRITE_API_TOKEN,
-    });
-
-    // Note: Supabase automatically validates the Authorization header or apikey header
-    // If neither is present, the function will return 401
-    // The frontend should include the anon key in the apikey header or Bearer token
+    // Note: This function doesn't require authentication - it's a public proxy
+    // The Eventbrite API token is stored server-side and not exposed to clients
+    // This allows anonymous access while keeping the API token secure
 
     if (!EVENTBRITE_API_TOKEN) {
       console.error('EVENTBRITE_API_TOKEN not configured');
