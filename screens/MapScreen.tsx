@@ -706,6 +706,14 @@ export const MapScreen: React.FC = () => {
         }
       });
 
+      // Also update on moveend to catch pan operations
+      map.on('moveend', () => {
+        if (mapRef.current) {
+          const zoom = mapRef.current.getZoom();
+          setCurrentZoom(zoom);
+        }
+      });
+
       // Close cluster/event selection when clicking on map (but not on markers)
       map.on('click', (e) => {
         // Only close if clicking directly on the map, not on a marker
