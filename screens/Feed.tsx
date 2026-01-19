@@ -633,9 +633,6 @@ export const Feed: React.FC = () => {
                      loading="lazy"
                      decoding="async"
                    />
-                   <div className="absolute inset-0 flex items-center justify-center">
-                     <PlayCircle size={20} className="text-white opacity-80" />
-                   </div>
                 </div>
               </div>
               <span className="text-[8px] font-black uppercase tracking-tight text-center line-clamp-1 opacity-60 leading-tight">{event.venueName}</span>
@@ -644,7 +641,7 @@ export const Feed: React.FC = () => {
         </div>
       </div>
 
-      <div className="mb-10">
+      <div className="mb-4">
         <div className="px-6 mb-4 flex justify-between items-center">
           <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">City Insights</h3>
           <button className="text-[9px] font-black uppercase tracking-widest text-primary" style={{ color: theme.accent }}>The Descent</button>
