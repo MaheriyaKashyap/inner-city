@@ -33,24 +33,27 @@ export async function invokeSupabaseFunction<T = any>(
   body?: any
 ): Promise<T> {
   try {
-    // Get the current session to include auth headers
-    const { data: { session } } = await supabase.auth.getSession();
-    
+    // Supabase's functions.invoke() automatically includes the anon key
+    // Don't override headers - let Supabase handle authentication
     const { data, error } = await supabase.functions.invoke(functionName, {
       body,
-      headers: {
-        Authorization: session ? `Bearer ${session.access_token}` : '',
-      },
     });
 
     if (error) {
-      // If 401, try without auth (for public functions)
+      // If 401, try with explicit anon key in Authorization header
       if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+        console.warn(`Function ${functionName} returned 401, retrying with explicit anon key...`);
+        
+        // Retry with explicit Authorization header
         const { data: retryData, error: retryError } = await supabase.functions.invoke(functionName, {
           body,
+          headers: {
+            Authorization: `Bearer ${supabaseAnonKey}`,
+          },
         });
         
         if (retryError) {
+          console.error(`Function ${functionName} still failing after retry:`, retryError);
           throw retryError;
         }
         

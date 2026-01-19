@@ -28,6 +28,10 @@ serve(async (req) => {
   }
 
   try {
+    // Note: Supabase automatically validates the Authorization header or apikey header
+    // If neither is present, the function will return 401
+    // The frontend should include the anon key in the apikey header or Bearer token
+
     if (!EVENTBRITE_API_TOKEN) {
       return new Response(
         JSON.stringify({ error: 'EVENTBRITE_API_TOKEN not configured' }),
