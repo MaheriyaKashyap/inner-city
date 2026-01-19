@@ -271,13 +271,23 @@ export const MapScreen: React.FC = () => {
       
       const groups: Map<string, Event[]> = new Map();
       
-      // Dynamic threshold based on zoom level
-      // At zoom 8: ~50km threshold
-      // At zoom 12: ~20m threshold (current default)
-      // At zoom 16: ~5m threshold
-      const baseThreshold = 0.00018; // ~20 meters in degrees
-      const zoomFactor = Math.pow(2, 12 - zoomLevel); // Exponential scaling
+      // Dynamic threshold based on zoom level - more dramatic clustering
+      // At zoom 6: ~100km threshold (entire city clusters together)
+      // At zoom 8: ~20km threshold (neighborhoods cluster)
+      // At zoom 10: ~2km threshold (areas cluster)
+      // At zoom 12: ~200m threshold (nearby venues cluster)
+      // At zoom 14: ~50m threshold (same building cluster)
+      // At zoom 16: ~10m threshold (very close only)
+      // Using exponential scaling with larger base for dramatic effect
+      const baseThreshold = 0.00018; // ~20 meters in degrees (base for zoom 12)
+      // More aggressive scaling: 2^(14 - zoomLevel) gives dramatic differences
+      const zoomFactor = Math.pow(2, 14 - zoomLevel);
       const LOCATION_THRESHOLD = baseThreshold * zoomFactor;
+      
+      // Cap maximum threshold at ~100km (0.9 degrees) for very low zoom
+      const MAX_THRESHOLD = 0.9;
+      const MIN_THRESHOLD = 0.00001; // ~1 meter minimum
+      const finalThreshold = Math.max(MIN_THRESHOLD, Math.min(MAX_THRESHOLD, LOCATION_THRESHOLD));
 
       events.forEach(event => {
         try {
@@ -298,7 +308,7 @@ export const MapScreen: React.FC = () => {
                 Math.pow(event.lat - groupLat, 2) + Math.pow(event.lng - groupLng, 2)
               );
 
-              if (distance < LOCATION_THRESHOLD) {
+              if (distance < finalThreshold) {
                 // Add to existing group
                 groupEvents.push(event);
                 foundGroup = true;
