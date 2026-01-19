@@ -401,6 +401,18 @@ export const Profile: React.FC = () => {
             />
           </AnimatePresence>
 
+          {/* Header Buttons - Top Right */}
+          {!isViewingOtherProfile && (
+            <div className="absolute top-12 right-6 z-20 flex gap-3">
+              <button
+                onClick={() => navigate('/settings')}
+                className="p-3 rounded-full bg-black/50 backdrop-blur-md border border-white/10"
+              >
+                <Settings size={20} color="#fff" />
+              </button>
+            </div>
+          )}
+
           {/* Photo Indicators */}
           {photos.length > 1 && (
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10 pointer-events-auto">
