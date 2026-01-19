@@ -271,23 +271,32 @@ export const MapScreen: React.FC = () => {
       
       const groups: Map<string, Event[]> = new Map();
       
-      // Dynamic threshold based on zoom level - more dramatic clustering
-      // At zoom 6: ~100km threshold (entire city clusters together)
-      // At zoom 8: ~20km threshold (neighborhoods cluster)
-      // At zoom 10: ~2km threshold (areas cluster)
-      // At zoom 12: ~200m threshold (nearby venues cluster)
-      // At zoom 14: ~50m threshold (same building cluster)
-      // At zoom 16: ~10m threshold (very close only)
-      // Using exponential scaling with larger base for dramatic effect
-      const baseThreshold = 0.00018; // ~20 meters in degrees (base for zoom 12)
-      // More aggressive scaling: 2^(14 - zoomLevel) gives dramatic differences
-      const zoomFactor = Math.pow(2, 14 - zoomLevel);
-      const LOCATION_THRESHOLD = baseThreshold * zoomFactor;
+      // Dynamic threshold based on zoom level - extremely aggressive clustering
+      // At zoom 4-6: All events in city cluster together (very large threshold)
+      // At zoom 8: ~50km threshold (large neighborhoods cluster)
+      // At zoom 10: ~5km threshold (areas cluster)
+      // At zoom 12: ~500m threshold (nearby venues cluster)
+      // At zoom 14: ~100m threshold (same building cluster)
+      // At zoom 16: ~20m threshold (very close only)
       
-      // Cap maximum threshold at ~100km (0.9 degrees) for very low zoom
-      const MAX_THRESHOLD = 0.9;
-      const MIN_THRESHOLD = 0.00001; // ~1 meter minimum
-      const finalThreshold = Math.max(MIN_THRESHOLD, Math.min(MAX_THRESHOLD, LOCATION_THRESHOLD));
+      let finalThreshold: number;
+      
+      // For very low zoom levels (4-7), force all events in city to cluster together
+      if (zoomLevel <= 7) {
+        // Use a very large threshold to cluster entire city - ~200km (1.8 degrees)
+        finalThreshold = 1.8;
+      } else {
+        // For higher zoom levels, use exponential scaling
+        const baseThreshold = 0.00018; // ~20 meters in degrees (base for zoom 12)
+        // More aggressive scaling: 2^(16 - zoomLevel) gives even more dramatic differences
+        const zoomFactor = Math.pow(2, 16 - zoomLevel);
+        const LOCATION_THRESHOLD = baseThreshold * zoomFactor;
+        
+        // Cap maximum threshold at ~200km (1.8 degrees) for low zoom
+        const MAX_THRESHOLD = 1.8;
+        const MIN_THRESHOLD = 0.00001; // ~1 meter minimum
+        finalThreshold = Math.max(MIN_THRESHOLD, Math.min(MAX_THRESHOLD, LOCATION_THRESHOLD));
+      }
 
       events.forEach(event => {
         try {
