@@ -77,13 +77,16 @@ export async function invokeSupabaseFunction<T = any>(
       // Attach status code to error for better handling
       (error as any).statusCode = statusCode;
       
-      // If 401, the function might not be accessible
+      // If 401, the function might not be accessible - handle gracefully without logging errors
+      // The caller will handle this by skipping direct API fallback
       if (statusCode === 401 || error.message?.includes('401') || error.message?.includes('Unauthorized')) {
         // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.ts:66',message:'401 Unauthorized error',data:{functionName,errorMessage:error.message,errorStatus:statusCode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.ts:66',message:'401 Unauthorized error (handled gracefully)',data:{functionName,errorMessage:error.message,errorStatus:statusCode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
         // #endregion
-        console.error(`Function ${functionName} returned 401. Check if function allows anonymous access.`);
-        console.error('Error details:', error);
+        // Don't log as error - this is expected and handled gracefully by the caller
+        if (import.meta.env.DEV) {
+          console.warn(`Function ${functionName} returned 401 (handled gracefully - skipping direct API fallback).`);
+        }
       }
       throw error;
     }
