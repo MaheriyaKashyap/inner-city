@@ -19,7 +19,9 @@ import {
   Eye,
   Activity,
   Link as LinkIcon,
-  CheckCircle2
+  CheckCircle2,
+  Users,
+  UserPlus
 } from 'lucide-react';
 
 interface SettingsItemProps {
@@ -106,6 +108,27 @@ export const SettingsScreen: React.FC = () => {
                 <span className="text-[8px] font-black uppercase opacity-30">Inactive</span>
               )
             }
+          />
+        </div>
+      </section>
+
+      {/* Social Section */}
+      <section className="mt-8">
+        <div className="px-6 mb-3">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-30">Social Network</h3>
+        </div>
+        <div className="border-t border-white/5">
+          <SettingsItem 
+            icon={<UserPlus size={18} />} 
+            label="Discover Friends" 
+            subtext="Find people like you" 
+            onClick={() => navigate('/discover')}
+          />
+          <SettingsItem 
+            icon={<Users size={18} />} 
+            label="Organizations" 
+            subtext="Event curators & promoters" 
+            onClick={() => navigate('/organizations')}
           />
         </div>
       </section>

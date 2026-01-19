@@ -16,6 +16,9 @@ import { Wallet } from './screens/Wallet';
 import { ChatRoom } from './screens/ChatRoom';
 import { Login } from './screens/Login';
 import { Messages } from './screens/Messages';
+import { Organizations } from './screens/Organizations';
+import { OrganizationDetail } from './screens/OrganizationDetail';
+import { FriendDiscovery } from './screens/FriendDiscovery';
 
 // Global Error Boundary to catch unhandled component crashes
 interface ErrorBoundaryProps {
@@ -204,6 +207,9 @@ const AppContent: React.FC = () => {
                     <Route path="/saved" element={<Saved />} />
                     <Route path="/wallet" element={<Wallet />} />
                     <Route path="/notifications" element={<Notifications />} />
+                    <Route path="/organizations" element={<Organizations />} />
+                    <Route path="/organization/:slug" element={<OrganizationDetail />} />
+                    <Route path="/discover" element={<FriendDiscovery />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </AppShell>
