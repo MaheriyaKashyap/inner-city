@@ -921,23 +921,26 @@ export const MapScreen: React.FC = () => {
               const categories = new Set(groupEvents.map(e => e.categories?.[0] || 'event').slice(0, 3));
               const categoryCount = Math.min(categories.size, 3);
               
+              // Container size needs to be larger to accommodate blur effects
+              const containerSize = size + 40; // Add padding for blur/glow effects
+              
               el.innerHTML = `
-                <div class="relative flex items-center justify-center group cursor-pointer" style="width: ${size}px; height: ${size}px; border-radius: 50%; overflow: hidden;">
-                  <!-- Outer glow ring -->
-                  <div class="absolute inset-0 rounded-full blur-lg opacity-50 transition-all duration-300 group-hover:opacity-100 group-hover:blur-xl" 
-                       style="background: ${primaryColor}; box-shadow: 0 0 ${size}px ${primaryColor}40;"></div>
+                <div class="relative flex items-center justify-center group cursor-pointer" style="width: ${containerSize}px; height: ${containerSize}px; padding: 20px; box-sizing: border-box;">
+                  <!-- Outer glow ring - extends beyond visible circle -->
+                  <div class="absolute inset-0 rounded-full blur-xl opacity-50 transition-all duration-300 group-hover:opacity-100 group-hover:blur-2xl" 
+                       style="background: ${primaryColor}; box-shadow: 0 0 ${size * 1.5}px ${primaryColor}60; width: ${size}px; height: ${size}px; left: 50%; top: 50%; transform: translate(-50%, -50%);"></div>
                   
                   <!-- Pulsing ring for live events -->
                   ${hasLiveEvent ? `
-                    <div class="absolute inset-0 rounded-full animate-ping opacity-40" 
-                         style="background-color: ${timeBasedColor}; animation-duration: 2s;"></div>
-                    <div class="absolute inset-0 rounded-full animate-pulse opacity-30" 
-                         style="background-color: ${timeBasedColor}; animation-duration: 1.5s;"></div>
+                    <div class="absolute rounded-full animate-ping opacity-40" 
+                         style="background-color: ${timeBasedColor}; animation-duration: 2s; width: ${size}px; height: ${size}px; left: 50%; top: 50%; transform: translate(-50%, -50%);"></div>
+                    <div class="absolute rounded-full animate-pulse opacity-30" 
+                         style="background-color: ${timeBasedColor}; animation-duration: 1.5s; width: ${size}px; height: ${size}px; left: 50%; top: 50%; transform: translate(-50%, -50%);"></div>
                   ` : ''}
                   
                   <!-- Main cluster circle with gradient -->
                   <div class="relative z-10 rounded-full border-2 border-white/30 transition-all duration-300 group-hover:scale-110 group-hover:border-white/50 shadow-2xl flex flex-col items-center justify-center font-black" 
-                       style="width: ${size}px; height: ${size}px; background: linear-gradient(135deg, ${primaryColor}dd, ${primaryColor}aa);">
+                       style="width: ${size}px; height: ${size}px; background: linear-gradient(135deg, ${primaryColor}dd, ${primaryColor}aa); left: 50%; top: 50%; transform: translate(-50%, -50%);">
                     
                     <!-- Event count badge -->
                     <div class="text-center leading-none" style="color: ${isOfficial ? '#000' : '#fff'};">
