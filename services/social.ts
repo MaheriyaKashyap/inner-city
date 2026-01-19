@@ -121,16 +121,47 @@ export async function isFollowing(followerId: string, followingId: string): Prom
 export async function createPost(
   userId: string,
   content: string,
-  eventId?: string,
-  mediaUrls: string[] = []
+  options: {
+    eventId?: string;
+    organizationId?: string;
+    type?: 'post' | 'checkin' | 'plan' | 'spot' | 'drop';
+    mediaUrls?: string[];
+    expiresAt?: string;
+    lat?: number;
+    lng?: number;
+    address?: string;
+    placeName?: string;
+    cityId?: string;
+  } = {}
 ): Promise<UserPost> {
+  const {
+    eventId,
+    organizationId,
+    type = 'post',
+    mediaUrls = [],
+    expiresAt,
+    lat,
+    lng,
+    address,
+    placeName,
+    cityId,
+  } = options;
+
   const { data, error } = await supabase
     .from('user_posts')
     .insert({
       user_id: userId,
       event_id: eventId || null,
+      organization_id: organizationId || null,
+      type,
       content,
       media_urls: mediaUrls,
+      expires_at: expiresAt || null,
+      lat: lat || null,
+      lng: lng || null,
+      address: address || null,
+      place_name: placeName || null,
+      city_id: cityId || null,
     })
     .select()
     .single();
@@ -338,12 +369,20 @@ function transformPost(data: any): UserPost {
     id: data.id,
     userId: data.user_id,
     eventId: data.event_id,
+    organizationId: data.organization_id,
+    type: data.type || 'post',
     content: data.content,
     mediaUrls: data.media_urls || [],
     likesCount: data.likes_count || 0,
     commentsCount: data.comments_count || 0,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
+    expiresAt: data.expires_at,
+    lat: data.lat,
+    lng: data.lng,
+    address: data.address,
+    placeName: data.place_name,
+    cityId: data.city_id,
     user: data.profiles ? {
       id: data.profiles.id,
       username: data.profiles.username,

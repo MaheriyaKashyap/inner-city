@@ -147,19 +147,66 @@ export interface Notification {
 }
 
 // Social Features
+export type PostType = 'post' | 'checkin' | 'plan' | 'spot' | 'drop';
+
 export interface UserPost {
   id: string;
   userId: string;
   eventId?: string;
+  organizationId?: string; // For curator drops
+  type: PostType;
   content: string;
   mediaUrls: string[];
   likesCount: number;
   commentsCount: number;
   createdAt: string;
   updatedAt: string;
+  expiresAt?: string; // For ephemeral content (plan/drop)
+  lat?: number;
+  lng?: number;
+  address?: string;
+  placeName?: string;
+  cityId?: string;
   user?: User;
   event?: Event;
+  organization?: Organization;
   isLiked?: boolean;
+}
+
+// Pulse feed item types
+export type PulseItemType = 'post' | 'checkin' | 'plan' | 'spot' | 'drop' | 'event';
+
+export interface PulseItem {
+  type: PulseItemType;
+  id: string;
+  createdAt: string;
+  // Union of all possible item data
+  data: UserPost | Event | { type: 'checkin'; post: UserPost; event: Event };
+}
+
+// Event recommendation with scoring
+export interface RecommendedEvent extends Event {
+  recommendationScore: number;
+  reasons: {
+    interestMatch: string[]; // Matching categories/subcategories
+    followedGoingCount: number;
+    followedInterestedCount: number;
+    followInterestMatch: string[]; // Categories from follow graph
+    engagementScore: number;
+    timeScore: number;
+    proximityScore?: number;
+  };
+}
+
+export interface SavedItem {
+  id: string;
+  userId: string;
+  itemType: 'event' | 'post' | 'plan' | 'spot' | 'drop';
+  itemId: string;
+  savedAt: string;
+  notes?: string;
+  // Denormalized data for display
+  item?: Event | UserPost;
 }
 
 export interface PostComment {

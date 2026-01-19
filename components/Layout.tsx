@@ -30,11 +30,10 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const mainContentRef = useRef<HTMLElement>(null);
 
   const navItems = [
-    { icon: Home, path: '/', label: 'Feed' },
-    { icon: Search, path: '/map', label: 'Map' },
+    { icon: Home, path: '/', label: 'Pulse' },
+    { icon: Search, path: '/map', label: 'Live Map' },
     { icon: Plus, path: '/create', label: 'Create' },
-    { icon: TicketIcon, path: '/wallet', label: 'Tickets' },
-    { icon: Bookmark, path: '/saved', label: 'Saved' },
+    { icon: Bookmark, path: '/saved', label: 'Plans' },
     { icon: User, path: '/profile', label: 'Profile', matchPattern: /^\/profile/ },
   ];
 
