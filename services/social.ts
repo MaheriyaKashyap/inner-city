@@ -42,12 +42,19 @@ export async function getFollowers(userId: string): Promise<User[]> {
   // Transform profiles to User objects
   return (data || []).map((item: any) => {
     const profile = item.profiles;
+    const defaultAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`;
+    const avatarUrl = profile.avatar_url || defaultAvatar;
+    const profilePhotos = (profile.profile_photos && Array.isArray(profile.profile_photos) && profile.profile_photos.length > 0)
+      ? profile.profile_photos 
+      : [avatarUrl];
+    
     return {
       id: profile.id,
       username: profile.username,
       displayName: profile.display_name,
-      avatarUrl: profile.avatar_url,
-      bio: profile.bio,
+      avatarUrl: avatarUrl,
+      profilePhotos: profilePhotos,
+      bio: profile.bio || '',
       socials: {},
       interests: profile.interests || [],
       homeCity: profile.home_city || '',
@@ -70,12 +77,19 @@ export async function getFollowing(userId: string): Promise<User[]> {
   
   return (data || []).map((item: any) => {
     const profile = item.profiles;
+    const defaultAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`;
+    const avatarUrl = profile.avatar_url || defaultAvatar;
+    const profilePhotos = (profile.profile_photos && Array.isArray(profile.profile_photos) && profile.profile_photos.length > 0)
+      ? profile.profile_photos 
+      : [avatarUrl];
+    
     return {
       id: profile.id,
       username: profile.username,
       displayName: profile.display_name,
-      avatarUrl: profile.avatar_url,
-      bio: profile.bio,
+      avatarUrl: avatarUrl,
+      profilePhotos: profilePhotos,
+      bio: profile.bio || '',
       socials: {},
       interests: profile.interests || [],
       homeCity: profile.home_city || '',
@@ -784,43 +798,76 @@ export async function findUsersWithMutualInterests(
     .single();
 
   if (!profile || !profile.interests || profile.interests.length === 0) {
+    // If no interests, return users from same city
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('home_city')
+      .eq('id', userId)
+      .single();
+    
+    if (userProfile?.home_city) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .neq('id', userId)
+        .eq('home_city', userProfile.home_city)
+        .limit(limit);
+      
+      if (error) throw error;
+      return (data || []).map(transformProfileToUser);
+    }
     return [];
   }
 
-  // Find users with overlapping interests
+  // Normalize interests to lowercase for case-insensitive matching
+  const normalizedInterests = profile.interests.map((i: string) => i.toLowerCase());
+
+  // Find users with overlapping interests (case-insensitive)
+  // We'll fetch all and filter in memory since PostgreSQL overlaps is case-sensitive
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
     .neq('id', userId)
-    .overlaps('interests', profile.interests)
-    .limit(limit);
+    .limit(limit * 3); // Get more to filter
 
   if (error) throw error;
 
-  return (data || []).map((p: any) => {
-    const defaultAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.id}`;
-    const avatarUrl = p.avatar_url || defaultAvatar;
-    const profilePhotos = (p.profile_photos && Array.isArray(p.profile_photos) && p.profile_photos.length > 0)
-      ? p.profile_photos 
-      : [avatarUrl];
+  // Filter by case-insensitive interest overlap
+  const matchingUsers = (data || []).filter((p: any) => {
+    if (!p.interests || p.interests.length === 0) return false;
+    const userInterests = p.interests.map((i: string) => i.toLowerCase());
+    return normalizedInterests.some(interest => userInterests.includes(interest));
+  }).slice(0, limit);
 
-    return {
-      id: p.id,
-      username: p.username,
-      displayName: p.display_name,
-      avatarUrl: avatarUrl,
-      profilePhotos: profilePhotos,
-      bio: p.bio || '',
-      socials: {},
-      interests: p.interests || [],
-      homeCity: p.home_city || '',
-      travelCities: p.travel_cities || [],
-      profileMode: p.profile_mode || 'full',
-      organizerTier: p.organizer_tier || 'none',
-      verified: p.verified || false,
-      createdAt: p.created_at || new Date().toISOString(),
-    };
-  });
+  return matchingUsers.map(transformProfileToUser);
+}
+
+/**
+ * Transform a profile row to a User object
+ */
+function transformProfileToUser(p: any): User {
+  const defaultAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.id}`;
+  const avatarUrl = p.avatar_url || defaultAvatar;
+  const profilePhotos = (p.profile_photos && Array.isArray(p.profile_photos) && p.profile_photos.length > 0)
+    ? p.profile_photos 
+    : [avatarUrl];
+
+  return {
+    id: p.id,
+    username: p.username,
+    displayName: p.display_name,
+    avatarUrl: avatarUrl,
+    profilePhotos: profilePhotos,
+    bio: p.bio || '',
+    socials: {},
+    interests: p.interests || [],
+    homeCity: p.home_city || '',
+    travelCities: p.travel_cities || [],
+    profileMode: p.profile_mode || 'full',
+    organizerTier: p.organizer_tier || 'none',
+    verified: p.verified || false,
+    createdAt: p.created_at || new Date().toISOString(),
+  };
 }
 
 /**
@@ -838,6 +885,24 @@ export async function findUsersGoingToSameEvents(
     .eq('status', 'going');
 
   if (!userEvents || userEvents.length === 0) {
+    // If user isn't going to any events, return users from same city
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('home_city')
+      .eq('id', userId)
+      .single();
+    
+    if (userProfile?.home_city) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .neq('id', userId)
+        .eq('home_city', userProfile.home_city)
+        .limit(limit);
+      
+      if (error) throw error;
+      return (data || []).map(transformProfileToUser);
+    }
     return [];
   }
 
@@ -870,31 +935,7 @@ export async function findUsersGoingToSameEvents(
   return Array.from(userMap.values())
     .sort((a, b) => b.count - a.count)
     .slice(0, limit)
-    .map(({ profile }) => {
-      if (!profile) return null;
-      const defaultAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`;
-      const avatarUrl = profile.avatar_url || defaultAvatar;
-      const profilePhotos = (profile.profile_photos && Array.isArray(profile.profile_photos) && profile.profile_photos.length > 0)
-        ? profile.profile_photos 
-        : [avatarUrl];
-
-      return {
-        id: profile.id,
-        username: profile.username,
-        displayName: profile.display_name,
-        avatarUrl: avatarUrl,
-        profilePhotos: profilePhotos,
-        bio: profile.bio || '',
-        socials: {},
-        interests: profile.interests || [],
-        homeCity: profile.home_city || '',
-        travelCities: profile.travel_cities || [],
-        profileMode: profile.profile_mode || 'full',
-        organizerTier: profile.organizer_tier || 'none',
-        verified: profile.verified || false,
-        createdAt: profile.created_at || new Date().toISOString(),
-      };
-    })
+    .map(({ profile }) => profile ? transformProfileToUser(profile) : null)
     .filter((u): u is User => u !== null);
 }
 
@@ -911,11 +952,48 @@ export async function findFriendsOfFriends(
     .select('following_id')
     .eq('follower_id', userId);
 
-  if (!following || following.length === 0) {
-    return [];
+  // Also get users who follow this user (they're potential friends)
+  const { data: followers } = await supabase
+    .from('follows')
+    .select('follower_id')
+    .eq('following_id', userId);
+
+  const followingIds = following?.map(f => f.following_id) || [];
+  const followerIds = followers?.map(f => f.follower_id) || [];
+
+  // If user has followers but isn't following anyone, show followers
+  if (followingIds.length === 0 && followerIds.length > 0) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('id', followerIds)
+      .limit(limit);
+    
+    if (error) throw error;
+    return (data || []).map(transformProfileToUser);
   }
 
-  const followingIds = following.map(f => f.following_id);
+  if (followingIds.length === 0) {
+    // If no following and no followers, return users from same city
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('home_city')
+      .eq('id', userId)
+      .single();
+    
+    if (userProfile?.home_city) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .neq('id', userId)
+        .eq('home_city', userProfile.home_city)
+        .limit(limit);
+      
+      if (error) throw error;
+      return (data || []).map(transformProfileToUser);
+    }
+    return [];
+  }
 
   // Get who those users are following (excluding current user and already followed)
   const { data, error } = await supabase
@@ -925,14 +1003,18 @@ export async function findFriendsOfFriends(
       profiles!follows_following_id_fkey(*)
     `)
     .in('follower_id', followingIds)
-    .neq('following_id', userId)
-    .not('following_id', 'in', `(${followingIds.join(',')})`);
+    .neq('following_id', userId);
 
   if (error) throw error;
 
+  // Filter out users already being followed
+  const filteredData = (data || []).filter((item: any) => 
+    !followingIds.includes(item.following_id)
+  );
+
   // Group by user_id and count mutual connections
   const userMap = new Map<string, { count: number; profile: any }>();
-  (data || []).forEach((item: any) => {
+  filteredData.forEach((item: any) => {
     const uid = item.following_id;
     if (!userMap.has(uid)) {
       userMap.set(uid, { count: 0, profile: item.profiles });
@@ -944,30 +1026,6 @@ export async function findFriendsOfFriends(
   return Array.from(userMap.values())
     .sort((a, b) => b.count - a.count)
     .slice(0, limit)
-    .map(({ profile }) => {
-      if (!profile) return null;
-      const defaultAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`;
-      const avatarUrl = profile.avatar_url || defaultAvatar;
-      const profilePhotos = (profile.profile_photos && Array.isArray(profile.profile_photos) && profile.profile_photos.length > 0)
-        ? profile.profile_photos 
-        : [avatarUrl];
-
-      return {
-        id: profile.id,
-        username: profile.username,
-        displayName: profile.display_name,
-        avatarUrl: avatarUrl,
-        profilePhotos: profilePhotos,
-        bio: profile.bio || '',
-        socials: {},
-        interests: profile.interests || [],
-        homeCity: profile.home_city || '',
-        travelCities: profile.travel_cities || [],
-        profileMode: profile.profile_mode || 'full',
-        organizerTier: profile.organizer_tier || 'none',
-        verified: profile.verified || false,
-        createdAt: profile.created_at || new Date().toISOString(),
-      };
-    })
+    .map(({ profile }) => profile ? transformProfileToUser(profile) : null)
     .filter((u): u is User => u !== null);
 }
