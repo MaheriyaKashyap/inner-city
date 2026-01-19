@@ -1090,7 +1090,7 @@ export const MapScreen: React.FC = () => {
   }, [eventGroups, theme.accent, theme.surfaceAlt, theme.text, mapError, mapLoaded, currentZoom]);
 
   return (
-    <div className="relative h-[calc(100vh-160px-80px)] overflow-hidden pb-20" style={{ backgroundColor: theme.background }}>
+    <div className="relative h-[calc(100vh-160px-80px)] overflow-hidden" style={{ backgroundColor: theme.background }}>
       {/* Real Mapbox Container */}
       <div 
         ref={mapContainerRef} 
