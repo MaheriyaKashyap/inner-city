@@ -69,8 +69,14 @@ serve(async (req) => {
 
     const url = `${EVENTBRITE_BASE_URL}/organizations/${organizationId}/events/?${params.toString()}`;
 
+    // Log the request for debugging
+    console.log(`Eventbrite API request: ${url.replace(EVENTBRITE_API_TOKEN, 'TOKEN_REDACTED')}`);
+    console.log(`Organization ID: ${organizationId}, Page Size: ${pageSize}, Status: ${status}`);
+
     // Make request to Eventbrite API
     const response = await fetch(url);
+    
+    console.log(`Eventbrite API response status: ${response.status}`);
 
     if (!response.ok) {
       // Handle 401, 403, 404 gracefully (return empty results)
@@ -115,6 +121,12 @@ serve(async (req) => {
     }
 
     const data = await response.json();
+    
+    // Log the response for debugging
+    console.log(`Eventbrite API response: ${data.events?.length || 0} events found for org ${organizationId}`);
+    if (data.events && data.events.length > 0) {
+      console.log(`First event: ${data.events[0].name?.text || 'unnamed'}`);
+    }
 
     return new Response(JSON.stringify(data), {
       status: 200,

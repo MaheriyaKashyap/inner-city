@@ -165,8 +165,11 @@ export async function searchEventsByOrganization(
           status: options.status || 'live',
         });
         // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'eventbrite.ts:157',message:'Edge Function success',data:{organizationId,eventCount:data?.events?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'eventbrite.ts:157',message:'Edge Function success',data:{organizationId,eventCount:data?.events?.length||0,pagination:data?.pagination,hasEvents:!!data?.events?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
         // #endregion
+        if (import.meta.env.DEV && data?.events?.length === 0) {
+          console.log(`Eventbrite: Edge Function returned empty events for org ${organizationId}. Pagination:`, data?.pagination);
+        }
         return data;
       } catch (supabaseError: any) {
         const statusCode = supabaseError?.statusCode || supabaseError?.status || supabaseError?.context?.status;
