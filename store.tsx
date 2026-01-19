@@ -868,14 +868,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     document.body.style.color = theme.text;
     document.body.style.transition = 'background-color 0.5s ease, color 0.5s ease';
     
-    // Update theme-color meta tag for iOS status bar
+    // Update theme-color meta tag for iOS/Safari status bar
+    // Safari requires the meta tag to be updated properly for status bar color
     let themeColorMeta = document.querySelector('meta[name="theme-color"]');
     if (!themeColorMeta) {
       themeColorMeta = document.createElement('meta');
       themeColorMeta.setAttribute('name', 'theme-color');
+      themeColorMeta.setAttribute('media', '(prefers-color-scheme: light)');
       document.head.appendChild(themeColorMeta);
     }
+    // Force update by removing and re-adding the content attribute
+    themeColorMeta.removeAttribute('content');
     themeColorMeta.setAttribute('content', theme.background);
+    
+    // Also update the id-based meta tag if it exists (for Safari)
+    const themeColorMetaById = document.getElementById('theme-color-meta');
+    if (themeColorMetaById) {
+      themeColorMetaById.setAttribute('content', theme.background);
+    }
     
     // Update apple-mobile-web-app-status-bar-style based on theme brightness
     // For dark themes: black-translucent (white text), for light: default (black text)
@@ -886,7 +896,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       statusBarMeta.setAttribute('name', 'apple-mobile-web-app-status-bar-style');
       document.head.appendChild(statusBarMeta);
     }
-    statusBarMeta.setAttribute('content', isLightTheme ? 'default' : 'black-translucent');
+    const newStatusBarStyle = isLightTheme ? 'default' : 'black-translucent';
+    statusBarMeta.setAttribute('content', newStatusBarStyle);
+    
+    // Force Safari to recognize the change by touching the viewport meta
+    const viewportMeta = document.querySelector('meta[name="viewport"]');
+    if (viewportMeta) {
+      // Trigger a reflow to ensure Safari picks up the changes
+      void viewportMeta.offsetHeight;
+    }
     
     // Update html background to match theme
     document.documentElement.style.backgroundColor = theme.background;
