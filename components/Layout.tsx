@@ -355,7 +355,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
             <img 
               src="/inner-city.png" 
               alt="Inner City Logo" 
-              className="w-6 h-6"
+              className="w-8 h-8"
             />
             <h1 className="brand-font text-base font-black italic tracking-tighter uppercase">INNER CITY</h1>
           </div>
