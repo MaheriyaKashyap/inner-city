@@ -351,7 +351,14 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
             </AnimatePresence>
           </div>
           
-          <h1 className="brand-font text-base font-black italic tracking-tighter uppercase ml-4 mt-2">INNER CITY</h1>
+          <div className="flex items-center gap-2 ml-4 mt-2">
+            <img 
+              src="/inner-city.png" 
+              alt="Inner City Logo" 
+              className="w-6 h-6"
+            />
+            <h1 className="brand-font text-base font-black italic tracking-tighter uppercase">INNER CITY</h1>
+          </div>
 
           <button 
             onClick={() => {

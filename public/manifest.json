@@ -1,0 +1,17 @@
+{
+  "name": "Inner City",
+  "short_name": "Inner City",
+  "description": "Discover events and connect with your city",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "/inner-city.png",
+      "sizes": "150x150",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
