@@ -643,9 +643,15 @@ export const MapScreen: React.FC = () => {
         console.log('Mapbox token source:', (import.meta as any).env?.VITE_MAPBOX_ACCESS_TOKEN ? 'Environment variable' : 'Fallback');
         console.log('Map container dimensions:', rect.width, 'x', rect.height);
       
+      // Use light style for light themes, dark for dark themes
+      const isLightTheme = theme.background === '#FFFFFF';
+      const mapStyle = isLightTheme 
+        ? 'mapbox://styles/mapbox/light-v11' 
+        : 'mapbox://styles/mapbox/dark-v11';
+      
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
-        style: 'mapbox://styles/mapbox/dark-v11',
+        style: mapStyle,
         center: [activeCity.coordinates?.lng || 13.4050, activeCity.coordinates?.lat || 52.5200],
         zoom: 12,
         attributionControl: false,
@@ -748,6 +754,22 @@ export const MapScreen: React.FC = () => {
       }
     };
   }, [activeCity.id]);
+
+  // Update map style when theme changes
+  useEffect(() => {
+    if (!mapRef.current || mapError) return;
+    
+    const isLightTheme = theme.background === '#FFFFFF';
+    const newStyle = isLightTheme 
+      ? 'mapbox://styles/mapbox/light-v11' 
+      : 'mapbox://styles/mapbox/dark-v11';
+    
+    // Only update if style is different
+    const currentStyle = mapRef.current.getStyle();
+    if (currentStyle && currentStyle.name !== newStyle.split('/').pop()) {
+      mapRef.current.setStyle(newStyle);
+    }
+  }, [theme.background, mapError]);
 
   // Center map on user location when map loads and location is available
   useEffect(() => {
