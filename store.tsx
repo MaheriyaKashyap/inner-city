@@ -330,6 +330,60 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
+  // Auto-detect city on first load if no city is saved
+  useEffect(() => {
+    const savedCityId = localStorage.getItem('inner_city_active');
+    if (savedCityId) {
+      // City already saved, skip detection
+      return;
+    }
+
+    setIsDetectingCity(true);
+    
+    // Request location permission and detect city
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            
+            // Reverse geocode to get city name
+            const geocodeResult = await reverseGeocode(latitude, longitude);
+            
+            if (geocodeResult) {
+              // Find nearest city from our available cities
+              const nearest = findNearestCity(latitude, longitude, MOCK_CITIES);
+              
+              if (nearest && nearest.distance < 100) {
+                // Within 100km of a supported city, use it
+                setActiveCity(nearest.city);
+                console.log(`Auto-detected city: ${nearest.city.name} (${nearest.distance.toFixed(1)}km away)`);
+              } else {
+                // Too far from any supported city, keep default
+                console.log(`Detected location: ${geocodeResult.name}, but no nearby supported city found`);
+              }
+            }
+          } catch (error) {
+            console.error('Error detecting city:', error);
+          } finally {
+            setIsDetectingCity(false);
+          }
+        },
+        (error) => {
+          // Location permission denied or error - keep default city
+          console.log('Location permission denied or error, using default city');
+          setIsDetectingCity(false);
+        },
+        {
+          timeout: 5000,
+          maximumAge: 300000 // 5 minutes
+        }
+      );
+    } else {
+      setIsDetectingCity(false);
+    }
+  }, []); // Run only once on mount
+
   const loadUserProfile = async (userId: string) => {
     // #region agent log
     fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'store.tsx:263',message:'loadUserProfile started',data:{userId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
