@@ -151,7 +151,13 @@ export const EventDetail: React.FC = () => {
     <div className="min-h-screen pb-32 relative">
       {/* Header Overlay */}
       <div className="relative h-[65vh]">
-        <img src={event.mediaUrls[0]} alt={event.title} className="w-full h-full object-cover" />
+        <img 
+          src={getOptimizedImageUrl(event.mediaUrls[0], 'hero')} 
+          alt={event.title} 
+          className="w-full h-full object-cover"
+          loading="eager"
+          decoding="async"
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-[var(--background)]" />
         
         <div className="absolute top-12 left-6 flex gap-4">

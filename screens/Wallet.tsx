@@ -33,9 +33,11 @@ const TicketCard: React.FC<{ ticket: Ticket; event: Event; isHistory?: boolean }
       {!isHistory && (
         <div className="h-44 w-full relative overflow-hidden">
           <img 
-            src={event.mediaUrls && event.mediaUrls[0] ? event.mediaUrls[0] : 'https://picsum.photos/seed/placeholder/800/400'} 
+            src={event.mediaUrls && event.mediaUrls[0] ? getOptimizedImageUrl(event.mediaUrls[0], 'card') : 'https://picsum.photos/seed/placeholder/800/400'} 
             alt="" 
-            className="w-full h-full object-cover" 
+            className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
           />
           <div 
             className="absolute inset-0 bg-gradient-to-t" 

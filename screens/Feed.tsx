@@ -161,9 +161,11 @@ const PostCard: React.FC<{ post: UserPost }> = ({ post }) => {
           >
             <div className="flex items-center gap-3">
               <img 
-                src={post.event.mediaUrls[0]} 
+                src={getOptimizedImageUrl(post.event.mediaUrls[0], 'thumbnail')} 
                 className="w-16 h-16 rounded-xl object-cover"
                 alt={post.event.title}
+                loading="lazy"
+                decoding="async"
               />
               <div className="flex-1 min-w-0">
                 <h4 className="text-sm font-black uppercase italic tracking-tight truncate mb-1">
@@ -304,7 +306,13 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
 
       <Link to={`/event/${event.id}`} className="block relative z-10">
         <div className="relative aspect-[4/5] overflow-hidden rounded-t-[2.5rem]">
-          <img src={event.mediaUrls[0]} alt={event.title} className="w-full h-full object-cover transition-transform duration-1000 hover:scale-105" />
+          <img 
+            src={getOptimizedImageUrl(event.mediaUrls[0], 'card')} 
+            alt={event.title} 
+            className="w-full h-full object-cover transition-transform duration-1000 hover:scale-105"
+            loading="lazy"
+            decoding="async"
+          />
           <div className={`absolute inset-0 bg-gradient-to-t ${isLight ? 'from-white/95 via-transparent' : 'from-black/95 via-transparent'} to-transparent`} />
           
           <div className="absolute top-5 left-5 flex flex-wrap gap-2">
@@ -371,17 +379,47 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
 };
 
 // Event type keywords for filtering
-const EVENT_TYPE_KEYWORDS: Record<string, string[]> = {
-  'all': [],
-  'concerts': ['music', 'concert', 'live music', 'band', 'artist', 'performance', 'gig', 'show'],
-  'comedy': ['comedy', 'stand-up', 'improv', 'humor', 'jokes', 'comic', 'laugh'],
-  'user-events': ['hangout', 'meetup', 'social', 'friends', 'community', 'chill', 'gathering'],
-  'nightlife': ['nightlife', 'club', 'dance', 'party', 'dj', 'electronic', 'nightclub', 'bar'],
-  'art-culture': ['art', 'culture', 'gallery', 'exhibition', 'museum', 'theater', 'theatre', 'arts'],
-  'sports': ['sports', 'game', 'match', 'fitness', 'athletic', 'sport', 'competition'],
-  'food-drink': ['food', 'drink', 'dining', 'restaurant', 'bar', 'culinary', 'cuisine', 'tasting'],
-  'workshops': ['workshop', 'class', 'learning', 'education', 'seminar', 'course', 'training'],
-  'raves': ['rave', 'techno', 'underground', 'warehouse', 'electronic music', 'edm', 'house music'],
+// Using Ticketmaster segment/genre classifications and keyword matching
+const EVENT_TYPE_KEYWORDS: Record<string, { segments?: string[], genres?: string[], keywords: string[], exclude?: string[] }> = {
+  'all': { keywords: [] },
+  'concerts': {
+    segments: ['Music'],
+    genres: ['Rock', 'Pop', 'Jazz', 'Country', 'R&B', 'Hip-Hop', 'Classical', 'Folk', 'Reggae', 'Blues', 'Metal', 'Punk', 'Alternative', 'Indie'],
+    keywords: ['concert', 'live music', 'band', 'artist', 'gig', 'tour', 'album', 'singer', 'musician'],
+    exclude: ['sports', 'hockey', 'basketball', 'football', 'baseball', 'soccer', 'game', 'match', 'vs', 'versus']
+  },
+  'comedy': {
+    segments: ['Comedy'],
+    keywords: ['comedy', 'stand-up', 'improv', 'humor', 'jokes', 'comic', 'laugh', 'comedian']
+  },
+  'user-events': {
+    keywords: ['hangout', 'meetup', 'social', 'friends', 'community', 'chill', 'gathering']
+  },
+  'nightlife': {
+    segments: ['Music'],
+    genres: ['Electronic', 'Dance', 'House', 'Techno', 'Trance'],
+    keywords: ['nightlife', 'club', 'dance', 'party', 'dj', 'electronic', 'nightclub', 'bar', 'nightlife']
+  },
+  'art-culture': {
+    segments: ['Arts & Theatre'],
+    keywords: ['art', 'culture', 'gallery', 'exhibition', 'museum', 'theater', 'theatre', 'arts', 'exhibit', 'sculpture', 'painting']
+  },
+  'sports': {
+    segments: ['Sports'],
+    genres: ['Hockey', 'Basketball', 'Football', 'Baseball', 'Soccer', 'Tennis', 'Golf', 'Boxing', 'MMA', 'Wrestling'],
+    keywords: ['sports', 'game', 'match', 'fitness', 'athletic', 'sport', 'competition', 'hockey', 'basketball', 'football', 'baseball', 'soccer', 'vs', 'versus', 'nhl', 'nba', 'nfl', 'mlb']
+  },
+  'food-drink': {
+    keywords: ['food', 'drink', 'dining', 'restaurant', 'bar', 'culinary', 'cuisine', 'tasting', 'wine', 'beer', 'cocktail']
+  },
+  'workshops': {
+    keywords: ['workshop', 'class', 'learning', 'education', 'seminar', 'course', 'training', 'lesson']
+  },
+  'raves': {
+    segments: ['Music'],
+    genres: ['Electronic', 'House', 'Techno', 'Trance', 'Dubstep'],
+    keywords: ['rave', 'techno', 'underground', 'warehouse', 'electronic music', 'edm', 'house music', 'drum and bass', 'dnb']
+  },
 };
 
 const filterEventsByType = (events: Event[], eventType: string): Event[] => {
@@ -397,12 +435,58 @@ const filterEventsByType = (events: Event[], eventType: string): Event[] => {
     );
   }
   
-  const keywords = EVENT_TYPE_KEYWORDS[eventType] || [];
-  if (keywords.length === 0) return events;
+  const typeConfig = EVENT_TYPE_KEYWORDS[eventType];
+  if (!typeConfig || typeConfig.keywords.length === 0) return events;
   
   return events.filter(event => {
-    const searchText = `${event.title} ${event.shortDesc} ${event.longDesc} ${event.categories?.join(' ')} ${event.subcategories?.join(' ')}`.toLowerCase();
-    return keywords.some(keyword => searchText.includes(keyword.toLowerCase()));
+    // First check Ticketmaster/Eventbrite classifications (most accurate)
+    const categories = event.categories || [];
+    const subcategories = event.subcategories || [];
+    
+    // Check segment match (highest priority)
+    if (typeConfig.segments) {
+      const hasSegmentMatch = typeConfig.segments.some(segment => 
+        categories.some(cat => cat.toLowerCase().includes(segment.toLowerCase()))
+      );
+      if (hasSegmentMatch) {
+        // If we have a segment match, check exclusions
+        if (typeConfig.exclude) {
+          const searchText = `${event.title} ${event.shortDesc} ${categories.join(' ')} ${subcategories.join(' ')}`.toLowerCase();
+          const hasExclusion = typeConfig.exclude.some(ex => searchText.includes(ex.toLowerCase()));
+          if (hasExclusion) return false;
+        }
+        return true;
+      }
+    }
+    
+    // Check genre match (medium priority)
+    if (typeConfig.genres) {
+      const hasGenreMatch = typeConfig.genres.some(genre => 
+        subcategories.some(sub => sub.toLowerCase().includes(genre.toLowerCase())) ||
+        categories.some(cat => cat.toLowerCase().includes(genre.toLowerCase()))
+      );
+      if (hasGenreMatch) {
+        // Check exclusions
+        if (typeConfig.exclude) {
+          const searchText = `${event.title} ${event.shortDesc} ${categories.join(' ')} ${subcategories.join(' ')}`.toLowerCase();
+          const hasExclusion = typeConfig.exclude.some(ex => searchText.includes(ex.toLowerCase()));
+          if (hasExclusion) return false;
+        }
+        return true;
+      }
+    }
+    
+    // Fallback to keyword matching (lowest priority)
+    const searchText = `${event.title} ${event.shortDesc} ${event.longDesc} ${categories.join(' ')} ${subcategories.join(' ')}`.toLowerCase();
+    
+    // Check exclusions first
+    if (typeConfig.exclude) {
+      const hasExclusion = typeConfig.exclude.some(ex => searchText.includes(ex.toLowerCase()));
+      if (hasExclusion) return false;
+    }
+    
+    // Check keywords
+    return typeConfig.keywords.some(keyword => searchText.includes(keyword.toLowerCase()));
   });
 };
 
@@ -490,7 +574,12 @@ export const Feed: React.FC = () => {
             <Link key={event.id} to={`/event/${event.id}`} className="flex-shrink-0 w-20 flex flex-col items-center gap-2">
               <div className="w-20 h-20 rounded-[1.8rem] border-2 p-1 active:scale-95 transition-all" style={{ borderColor: theme.accent }}>
                 <div className="w-full h-full rounded-[1.3rem] overflow-hidden relative">
-                   <img src={event.mediaUrls[0]} className="w-full h-full object-cover brightness-75" />
+                   <img 
+                     src={getOptimizedImageUrl(event.mediaUrls[0], 'thumbnail')} 
+                     className="w-full h-full object-cover brightness-75"
+                     loading="lazy"
+                     decoding="async"
+                   />
                    <div className="absolute inset-0 flex items-center justify-center">
                      <PlayCircle size={20} className="text-white opacity-80" />
                    </div>
