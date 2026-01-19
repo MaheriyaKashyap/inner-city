@@ -41,7 +41,9 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 const convertProfileToUser = (profile: any, authUser: any): User => {
   const defaultAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`;
   const avatarUrl = profile.avatar_url || defaultAvatar;
-  const profilePhotos = profile.profile_photos && profile.profile_photos.length > 0 
+  // Handle profile_photos array (new) or avatar_url (legacy)
+  // profile_photos column may not exist if migration hasn't been applied yet
+  const profilePhotos = (profile.profile_photos && Array.isArray(profile.profile_photos) && profile.profile_photos.length > 0)
     ? profile.profile_photos 
     : [avatarUrl]; // Fallback to avatar_url if no photos
   
