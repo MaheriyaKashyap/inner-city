@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom';
 import { MOCK_CITY_PULSES } from '../mockData';
 import { getFeedPosts, likePost, unlikePost, checkPostLiked, getPostComments, addPostComment, createPost } from '../services/social';
 import { supabase } from '../lib/supabase';
+import { getOptimizedImageUrl } from '../utils/imageOptimization';
 
 const PulseCard: React.FC<{ pulse: CityPulse }> = ({ pulse }) => {
   const { theme } = useApp();
