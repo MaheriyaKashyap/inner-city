@@ -780,6 +780,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [isTicketmasterConnected, activeCity.id, activeCity.name]);
 
+  // Update a single event in the store (e.g., after RSVP to update counts)
+  const updateEventInStore = useCallback((eventId: string, updates: Partial<Event>) => {
+    setEvents(prev => prev.map(e => e.id === eventId ? { ...e, ...updates } : e));
+    // Also update ranked events if needed
+    setRankedEvents(prev => {
+      if (!prev) return null;
+      return {
+        priority: prev.priority.map(e => e.id === eventId ? { ...e, ...updates } : e),
+        background: prev.background.map(e => e.id === eventId ? { ...e, ...updates } : e),
+      };
+    });
+  }, []);
+
   // Refresh function for pull-to-refresh
   const refreshFeed = useCallback(() => {
     if (!isTicketmasterConnected) return Promise.resolve();
