@@ -6,6 +6,8 @@
  * Usage:
  * POST /functions/v1/eventbrite-proxy
  * Body: { organizationId: "123456", pageSize: 10, page: 1 }
+ * OR
+ * Body: { action: "getMyOrganizations" } - Get organizations accessible to the token
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -28,10 +30,6 @@ serve(async (req) => {
   }
 
   try {
-    // Note: This function doesn't require authentication - it's a public proxy
-    // The Eventbrite API token is stored server-side and not exposed to clients
-    // This allows anonymous access while keeping the API token secure
-
     if (!EVENTBRITE_API_TOKEN) {
       console.error('EVENTBRITE_API_TOKEN not configured');
       return new Response(
@@ -43,7 +41,38 @@ serve(async (req) => {
       );
     }
 
-    const { organizationId, pageSize = 10, page = 1, status = 'live' } = await req.json();
+    const body = await req.json();
+    
+    // Handle request to get user's organizations
+    if (body.action === 'getMyOrganizations') {
+      const url = `${EVENTBRITE_BASE_URL}/users/me/organizations/?token=${EVENTBRITE_API_TOKEN.trim()}`;
+      console.log(`Fetching user's organizations...`);
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Eventbrite API error:', response.status, errorText);
+        return new Response(
+          JSON.stringify({ error: `Eventbrite API error: ${response.status}`, details: errorText }),
+          {
+            status: response.status,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      
+      const data = await response.json();
+      console.log(`Found ${data.organizations?.length || 0} organizations`);
+      
+      return new Response(JSON.stringify(data), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Handle organization events request
+    const { organizationId, pageSize = 10, page = 1, status = 'live' } = body;
 
     if (!organizationId) {
       return new Response(
