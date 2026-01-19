@@ -805,6 +805,37 @@ export const Profile: React.FC = () => {
                     ))}
                   </select>
                 </div>
+
+                {/* Theme Picker */}
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-2 block">
+                    Visual Spectrum
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(THEMES).slice(0, 4).map(([key, t]) => (
+                      <button 
+                        key={key} 
+                        onClick={() => setThemeKey(key)}
+                        className="p-3 rounded-2xl flex flex-col gap-2 border-2 transition-all active:scale-95"
+                        style={{ 
+                          backgroundColor: t.background, 
+                          borderColor: theme.name === t.name ? theme.accent : 'transparent' 
+                        }}
+                      >
+                        <div className="flex gap-1">
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.accent }} />
+                          <div className="w-2.5 h-2.5 rounded-full opacity-50" style={{ backgroundColor: t.text }} />
+                        </div>
+                        <span 
+                          className="text-[9px] font-black uppercase tracking-tight text-left"
+                          style={{ color: t.text }}
+                        >
+                          {t.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-3 mt-6">
