@@ -684,44 +684,44 @@ export async function getConversation(
     .limit(limit);
 
   if (error) throw error;
-  return (data || []).reverse().map((item: any) => ({
-    id: item.id,
-    senderId: item.sender_id,
-    recipientId: item.recipient_id,
-    message: item.message,
-    readAt: item.read_at,
-    createdAt: item.created_at,
-    sender: item.sender ? {
-      id: item.sender.id,
-      username: item.sender.username,
-      displayName: item.sender.display_name,
-      avatarUrl: item.sender.avatar_url,
-      bio: item.sender.bio,
-      socials: {},
-      interests: item.sender.interests || [],
-      homeCity: item.sender.home_city || '',
-      travelCities: item.sender.travel_cities || [],
-      profileMode: item.sender.profile_mode || 'full',
-      organizerTier: item.sender.organizer_tier || 'none',
-      verified: item.sender.verified || false,
-      createdAt: item.sender.created_at,
-    } : undefined,
-    recipient: item.recipient ? {
-      id: item.recipient.id,
-      username: item.recipient.username,
-      displayName: item.recipient.display_name,
-      avatarUrl: item.recipient.avatar_url,
-      bio: item.recipient.bio,
-      socials: {},
-      interests: item.recipient.interests || [],
-      homeCity: item.recipient.home_city || '',
-      travelCities: item.recipient.travel_cities || [],
-      profileMode: item.recipient.profile_mode || 'full',
-      organizerTier: item.recipient.organizer_tier || 'none',
-      verified: item.recipient.verified || false,
-      createdAt: item.recipient.created_at,
-    } : undefined,
-  }));
+  return (data || []).reverse().map((item: any) => {
+    const transformProfile = (profile: any): User | undefined => {
+      if (!profile) return undefined;
+      const defaultAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`;
+      const avatarUrl = profile.avatar_url || defaultAvatar;
+      const profilePhotos = (profile.profile_photos && Array.isArray(profile.profile_photos) && profile.profile_photos.length > 0)
+        ? profile.profile_photos 
+        : [avatarUrl];
+      
+      return {
+        id: profile.id,
+        username: profile.username,
+        displayName: profile.display_name,
+        avatarUrl: avatarUrl,
+        profilePhotos: profilePhotos,
+        bio: profile.bio || '',
+        socials: {},
+        interests: profile.interests || [],
+        homeCity: profile.home_city || '',
+        travelCities: profile.travel_cities || [],
+        profileMode: profile.profile_mode || 'full',
+        organizerTier: profile.organizer_tier || 'none',
+        verified: profile.verified || false,
+        createdAt: profile.created_at || new Date().toISOString(),
+      };
+    };
+
+    return {
+      id: item.id,
+      senderId: item.sender_id,
+      recipientId: item.recipient_id,
+      message: item.message,
+      readAt: item.read_at,
+      createdAt: item.created_at,
+      sender: transformProfile(item.sender),
+      recipient: transformProfile(item.recipient),
+    };
+  });
 }
 
 export async function markMessageAsRead(messageId: string, userId: string): Promise<void> {
