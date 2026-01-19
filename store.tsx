@@ -59,6 +59,7 @@ const convertProfileToUser = (profile: any, authUser: any): User => {
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [authInitialized, setAuthInitialized] = useState(false);
   const [activeCity, setActiveCityState] = useState<City>(() => {
     try {
       const savedCityId = localStorage.getItem('inner_city_active');
@@ -321,6 +322,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setUser(null);
         setIsLoadingUser(false);
       }
+      // Mark auth as initialized after first state change
+      if (!authInitialized) {
+        setAuthInitialized(true);
+      }
     });
 
     return () => {
@@ -328,7 +333,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [authInitialized]);
 
   // Auto-detect city on first load if no city is saved
   useEffect(() => {
@@ -810,7 +815,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setActiveCity(prev => ({ ...prev }));
       }
     },
-    isLoadingTicketmasterEvents
+    isLoadingTicketmasterEvents,
+    refreshFeed
   };
 
   useEffect(() => {

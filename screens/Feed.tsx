@@ -506,11 +506,13 @@ const filterEventsByType = (events: Event[], eventType: string): Event[] => {
 };
 
 export const Feed: React.FC = () => {
-  const { events, rankedEvents, activeCity, activeEventType, theme, user } = useApp();
+  const { events, rankedEvents, activeCity, activeEventType, theme, user, refreshFeed, isLoadingTicketmasterEvents } = useApp();
   const [activeMood, setActiveMood] = useState('All');
   const [posts, setPosts] = useState<UserPost[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const feedRef = useRef<HTMLDivElement>(null);
   
   const moods = ['All', 'Deep & Dark', 'High Energy', 'Soulful', 'Experimental'];
   const cityEvents = events.filter(e => e.cityId === activeCity.id);
@@ -558,7 +560,17 @@ export const Feed: React.FC = () => {
   }, [rankedEvents, filteredCityEvents, activeCity.id, activeEventType]);
 
   return (
-    <div className="pb-10 pt-4">
+    <div ref={feedRef} className="pb-10 pt-4 relative">
+      {/* Pull-to-refresh indicator */}
+      {isRefreshing && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full backdrop-blur-md border" 
+             style={{ backgroundColor: theme.surface, borderColor: theme.border }}>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: theme.accent }} />
+            <span className="text-[10px] font-black uppercase tracking-widest">Refreshing...</span>
+          </div>
+        </div>
+      )}
       <div className="px-6 mb-8 flex items-end justify-between gap-4">
         <div className="flex-1 min-w-0" style={{ maxWidth: 'calc(100% - 120px)' }}>
           <span className="text-[10px] font-black tracking-[0.4em] uppercase opacity-40 block mb-1">Gateway // {activeCity.country}</span>
