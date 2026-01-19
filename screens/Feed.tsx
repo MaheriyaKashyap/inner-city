@@ -8,10 +8,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, isValid, formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { MOCK_CITY_PULSES } from '../mockData';
-import { getFeedPosts, likePost, unlikePost, checkPostLiked, getPostComments, addPostComment, createPost } from '../services/social';
+import { getFeedPosts, likePost, unlikePost, checkPostLiked, getPostComments, addPostComment, createPost, checkInToEvent } from '../services/social';
 import { getPulseFeed } from '../services/pulse';
 import { supabase } from '../lib/supabase';
 import { getOptimizedImageUrl } from '../utils/imageOptimization';
+import { reverseGeocode } from '../services/geocoding';
 
 const PulseCard: React.FC<{ pulse: CityPulse }> = ({ pulse }) => {
   const { theme } = useApp();
@@ -759,11 +760,12 @@ const filterEventsByType = (events: Event[], eventType: string): Event[] => {
 };
 
 export const Feed: React.FC = () => {
-  const { activeCity, theme, user, refreshFeed } = useApp();
+  const { activeCity, theme, user, refreshFeed, events } = useApp();
   const [pulseItems, setPulseItems] = useState<PulseItem[]>([]);
   const [isLoadingPulse, setIsLoadingPulse] = useState(false);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [showQuickComposer, setShowQuickComposer] = useState(false);
+  const [quickComposerType, setQuickComposerType] = useState<'checkin' | 'plan' | 'spot' | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
   
@@ -898,21 +900,30 @@ export const Feed: React.FC = () => {
               Post
             </button>
             <button
-              onClick={() => setShowQuickComposer(true)}
+              onClick={() => {
+                setQuickComposerType('checkin');
+                setShowQuickComposer(true);
+              }}
               className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 whitespace-nowrap border"
               style={{ backgroundColor: theme.surfaceAlt, borderColor: theme.border, color: theme.text }}
             >
               Check in
             </button>
             <button
-              onClick={() => setShowQuickComposer(true)}
+              onClick={() => {
+                setQuickComposerType('plan');
+                setShowQuickComposer(true);
+              }}
               className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 whitespace-nowrap border"
               style={{ backgroundColor: theme.surfaceAlt, borderColor: theme.border, color: theme.text }}
             >
               Make a plan
             </button>
             <button
-              onClick={() => setShowQuickComposer(true)}
+              onClick={() => {
+                setQuickComposerType('spot');
+                setShowQuickComposer(true);
+              }}
               className="px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 whitespace-nowrap border"
               style={{ backgroundColor: theme.surfaceAlt, borderColor: theme.border, color: theme.text }}
             >
@@ -968,6 +979,24 @@ export const Feed: React.FC = () => {
           />
         )}
       </AnimatePresence>
+
+      {/* Quick Composer Modal */}
+      <AnimatePresence>
+        {showQuickComposer && user && quickComposerType && (
+          <QuickComposerModal
+            type={quickComposerType}
+            onClose={() => {
+              setShowQuickComposer(false);
+              setQuickComposerType(null);
+            }}
+            onPostCreated={() => {
+              setShowQuickComposer(false);
+              setQuickComposerType(null);
+              loadPulseFeed();
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
@@ -985,7 +1014,11 @@ const CreatePostModal: React.FC<{ onClose: () => void; onPostCreated: () => void
     
     setIsPosting(true);
     try {
-      await createPost(user.id, content, selectedEventId || undefined);
+      await createPost(user.id, content, {
+        eventId: selectedEventId || undefined,
+        type: 'post',
+        cityId: activeCity.id,
+      });
       onPostCreated();
     } catch (error) {
       console.error('Error creating post:', error);
@@ -1057,6 +1090,262 @@ const CreatePostModal: React.FC<{ onClose: () => void; onPostCreated: () => void
             style={{ backgroundColor: theme.accent, color: theme.background === '#FFFFFF' ? '#FFF' : '#000' }}
           >
             {isPosting ? 'Posting...' : 'Post'}
+          </button>
+          <button
+            onClick={onClose}
+            className="px-6 py-3 rounded-2xl text-sm font-black uppercase tracking-widest transition-all active:scale-95"
+            style={{ backgroundColor: theme.surfaceAlt, color: theme.text }}
+          >
+            Cancel
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// Quick Composer Modal for Check-in, Plan, Spot
+const QuickComposerModal: React.FC<{ 
+  type: 'checkin' | 'plan' | 'spot';
+  onClose: () => void;
+  onPostCreated: () => void;
+}> = ({ type, onClose, onPostCreated }) => {
+  const { theme, user, events, activeCity } = useApp();
+  const [content, setContent] = useState('');
+  const [selectedEventId, setSelectedEventId] = useState<string>('');
+  const [placeName, setPlaceName] = useState('');
+  const [address, setAddress] = useState('');
+  const [expiresAt, setExpiresAt] = useState('');
+  const [isPosting, setIsPosting] = useState(false);
+  const isLight = theme.background === '#FFFFFF';
+
+  const handleSubmit = async () => {
+    if (!user || !content.trim()) return;
+    
+    // For check-ins, require an event
+    if (type === 'checkin' && !selectedEventId) {
+      alert('Please select an event to check in to');
+      return;
+    }
+
+    setIsPosting(true);
+    try {
+      // For check-ins, first check in to the event, then create a post
+      if (type === 'checkin' && selectedEventId) {
+        await checkInToEvent(selectedEventId, user.id);
+      }
+
+      // Get event location for check-ins
+      let lat: number | undefined;
+      let lng: number | undefined;
+      
+      if (type === 'checkin' && selectedEventId) {
+        const event = events.find(e => e.id === selectedEventId);
+        if (event) {
+          lat = event.lat;
+          lng = event.lng;
+        }
+      }
+
+      // Geocode address for spots and plans
+      if ((type === 'spot' || type === 'plan') && address) {
+        try {
+          // Use Mapbox geocoding to get coordinates from address
+          const MAPBOX_TOKEN = (import.meta as any).env?.VITE_MAPBOX_ACCESS_TOKEN;
+          if (MAPBOX_TOKEN) {
+            const response = await fetch(
+              `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${MAPBOX_TOKEN}&limit=1`
+            );
+            if (response.ok) {
+              const data = await response.json();
+              const feature = data.features?.[0];
+              if (feature) {
+                const [lngCoord, latCoord] = feature.center;
+                lat = latCoord;
+                lng = lngCoord;
+                // Update place name if not set
+                if (!placeName && feature.place_name) {
+                  setPlaceName(feature.place_name.split(',')[0]);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error geocoding address:', error);
+          // Continue without coordinates if geocoding fails
+        }
+      }
+
+      // For plans, set expiration (default: 24 hours from now)
+      let expiresAtDate: string | undefined;
+      if (type === 'plan') {
+        if (expiresAt) {
+          expiresAtDate = new Date(expiresAt).toISOString();
+        } else {
+          // Default: 24 hours from now
+          const defaultExpiry = new Date();
+          defaultExpiry.setHours(defaultExpiry.getHours() + 24);
+          expiresAtDate = defaultExpiry.toISOString();
+        }
+      }
+
+      // Create the post
+      await createPost(user.id, content || (type === 'checkin' ? 'Checked in' : ''), {
+        type,
+        eventId: type === 'checkin' ? selectedEventId : undefined,
+        cityId: activeCity.id,
+        placeName: placeName || undefined,
+        address: address || undefined,
+        lat,
+        lng,
+        expiresAt: expiresAtDate,
+      });
+      
+      onPostCreated();
+    } catch (error) {
+      console.error(`Error creating ${type}:`, error);
+      alert(`Failed to create ${type}. Please try again.`);
+    } finally {
+      setIsPosting(false);
+    }
+  };
+
+  const cityEvents = events.filter(e => e.cityId === activeCity.id);
+  const liveEvents = cityEvents.filter(e => {
+    const now = new Date();
+    const start = new Date(e.startAt);
+    const end = new Date(e.endAt);
+    return now >= start && now <= end;
+  });
+
+  const getTitle = () => {
+    switch (type) {
+      case 'checkin': return 'Check In';
+      case 'plan': return 'Make a Plan';
+      case 'spot': return 'Recommend a Spot';
+      default: return 'Create';
+    }
+  };
+
+  const getPlaceholder = () => {
+    switch (type) {
+      case 'checkin': return 'Share what you\'re up to...';
+      case 'plan': return 'What are you planning?';
+      case 'spot': return 'Tell us about this spot...';
+      default: return 'Share your thoughts...';
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-3xl p-6 max-h-[90vh] overflow-y-auto"
+        style={{ backgroundColor: theme.surface, border: `1px solid ${theme.border}` }}
+      >
+        <h2 className="text-2xl font-black uppercase italic tracking-tighter mb-6">{getTitle()}</h2>
+        
+        <div className="space-y-4">
+          {type === 'checkin' && (
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-2 block">
+                Event *
+              </label>
+              <select
+                value={selectedEventId}
+                onChange={(e) => setSelectedEventId(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl outline-none text-sm"
+                style={{ backgroundColor: theme.surfaceAlt, color: theme.text, border: `1px solid ${theme.border}` }}
+              >
+                <option value="">Select an event...</option>
+                {liveEvents.length > 0 && (
+                  <optgroup label="Live Now">
+                    {liveEvents.map(event => (
+                      <option key={event.id} value={event.id}>{event.title}</option>
+                    ))}
+                  </optgroup>
+                )}
+                {cityEvents.filter(e => !liveEvents.includes(e)).slice(0, 20).map(event => (
+                  <option key={event.id} value={event.id}>{event.title}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-2 block">
+              {type === 'spot' ? 'Spot Name' : type === 'plan' ? 'Plan Title (Optional)' : 'Message'}
+            </label>
+            {type === 'spot' && (
+              <input
+                type="text"
+                value={placeName}
+                onChange={(e) => setPlaceName(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl outline-none text-sm mb-3"
+                style={{ backgroundColor: theme.surfaceAlt, color: theme.text, border: `1px solid ${theme.border}` }}
+                placeholder="e.g., The Underground Club"
+              />
+            )}
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={type === 'checkin' ? 4 : 6}
+              className="w-full px-4 py-3 rounded-2xl outline-none text-sm resize-none"
+              style={{ backgroundColor: theme.surfaceAlt, color: theme.text, border: `1px solid ${theme.border}` }}
+              placeholder={getPlaceholder()}
+            />
+          </div>
+
+          {(type === 'spot' || type === 'plan') && (
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-2 block">
+                Address (Optional)
+              </label>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl outline-none text-sm"
+                style={{ backgroundColor: theme.surfaceAlt, color: theme.text, border: `1px solid ${theme.border}` }}
+                placeholder="e.g., 123 Main St, Vancouver"
+              />
+            </div>
+          )}
+
+          {type === 'plan' && (
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-2 block">
+                Expires (Optional - defaults to 24 hours)
+              </label>
+              <input
+                type="datetime-local"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl outline-none text-sm"
+                style={{ backgroundColor: theme.surfaceAlt, color: theme.text, border: `1px solid ${theme.border}` }}
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={handleSubmit}
+            disabled={!content.trim() || isPosting || (type === 'checkin' && !selectedEventId)}
+            className="flex-1 px-6 py-3 rounded-2xl text-sm font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50"
+            style={{ backgroundColor: theme.accent, color: theme.background === '#FFFFFF' ? '#FFF' : '#000' }}
+          >
+            {isPosting ? 'Posting...' : getTitle()}
           </button>
           <button
             onClick={onClose}
