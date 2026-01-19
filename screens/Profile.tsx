@@ -76,6 +76,15 @@ export const Profile: React.FC = () => {
     }
   }, [user]);
 
+  // Cleanup long press timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+      }
+    };
+  }, []);
+
   const loadFollowCounts = async () => {
     const targetUserId = userId || currentUser?.id;
     if (!targetUserId) return;
