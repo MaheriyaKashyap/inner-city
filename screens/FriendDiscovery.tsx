@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../store';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { UserPlus, Users, Calendar, MapPin, X, Loader2 } from 'lucide-react';
+import { UserPlus, Users, Calendar, MapPin, Check, Loader2 } from 'lucide-react';
 import { 
   findUsersWithMutualInterests, 
   findUsersGoingToSameEvents, 
@@ -156,7 +156,7 @@ export const FriendDiscovery: React.FC = () => {
                       )}
                       {suggestedUser.verified && (
                         <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white flex items-center justify-center">
-                          <X size={12} className="text-black" />
+                          <Check size={12} className="text-black" />
                         </div>
                       )}
                     </div>

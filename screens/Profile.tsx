@@ -450,18 +450,7 @@ export const Profile: React.FC = () => {
           </div>
           {!isViewingOtherProfile && (
             <button 
-              onClick={() => {
-                setEditForm({
-                  displayName: user.displayName || '',
-                  bio: user.bio || '',
-                  profilePhotos: user.profilePhotos || [user.avatarUrl],
-                  twitter: user.socials?.twitter || '',
-                  instagram: user.socials?.instagram || '',
-                  interests: user.interests?.join(', ') || '',
-                  homeCity: user.homeCity || '',
-                });
-                setShowEditModal(true);
-              }}
+              onClick={() => navigate('/settings')}
               className="p-2 rounded-full"
               style={{ backgroundColor: theme.surfaceAlt }}
             >
