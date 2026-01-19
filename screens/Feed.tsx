@@ -525,6 +525,29 @@ export const Feed: React.FC = () => {
     loadPosts();
   }, [activeCity.id, activeEventType]);
 
+  // Pull-to-refresh handler
+  useEffect(() => {
+    const handleScroll = () => {
+      if (isRefreshing || isLoadingTicketmasterEvents) return;
+      
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      
+      // Trigger refresh when scrolled to top
+      if (scrollTop < 50 && !isRefreshing && refreshFeed) {
+        setIsRefreshing(true);
+        Promise.all([
+          refreshFeed(),
+          loadPosts()
+        ]).finally(() => {
+          setIsRefreshing(false);
+        });
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [refreshFeed, isRefreshing, isLoadingTicketmasterEvents]);
+
   const loadPosts = async () => {
     setIsLoadingPosts(true);
     try {
