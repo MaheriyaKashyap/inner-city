@@ -840,10 +840,13 @@ export async function searchEventsByCity(
   const delayBetweenRequests = 2500; // 2.5 second delay = ~0.4 requests/second (well under Eventbrite's limit)
   let consecutiveRateLimits = 0;
   const maxConsecutiveRateLimits = 3; // Stop after 3 consecutive rate limits
+  let consecutive404s = 0;
+  const maxConsecutive404s = 5; // Stop after 5 consecutive 404s (invalid org IDs)
   
   // Limit number of organizations to avoid hitting rate limits
   // Query top organizations first (they're likely to have more events)
-  const maxOrganizations = 15; // Limit to 15 organizations per city
+  // Increase limit since many might be invalid (404)
+  const maxOrganizations = 30; // Try more organizations since many might return 404
   const limitedOrganizations = organizations.slice(0, maxOrganizations);
   
   for (let i = 0; i < limitedOrganizations.length; i++) {
@@ -864,6 +867,17 @@ export async function searchEventsByCity(
         break;
       }
       
+      // Stop if we've hit too many consecutive 404s (invalid organization IDs)
+      if (consecutive404s >= maxConsecutive404s) {
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'eventbrite.ts:777',message:'Stopping due to consecutive 404s',data:{cityName,consecutive404s,processed:i,totalOrganizations:limitedOrganizations.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        if (import.meta.env.DEV) {
+          console.warn(`Eventbrite: Stopping after ${consecutive404s} consecutive 404s (invalid organization IDs). Processed ${i} of ${limitedOrganizations.length} organizations. Found ${allEvents.length} total events.`);
+        }
+        break;
+      }
+      
       // Add delay between requests (except for first one)
       if (i > 0) {
         await new Promise(resolve => setTimeout(resolve, delayBetweenRequests));
@@ -874,15 +888,33 @@ export async function searchEventsByCity(
         page_size: options.page_size || 20,
       });
       
+      // Check if this was a 404 (organization doesn't exist)
+      // Edge Function returns empty events array for 404, so we check pagination
+      const is404 = response.pagination?.object_count === 0 && 
+                    response.events?.length === 0 &&
+                    (response as any)?.is404;
+      
       // Track rate limits from response
       if ((response as any)?.isRateLimit) {
         consecutiveRateLimits++;
+        consecutive404s = 0; // Reset 404 counter on rate limit
         // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'eventbrite.ts:785',message:'Rate limit in response',data:{cityName,orgId,consecutiveRateLimits},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'eventbrite.ts:790',message:'Rate limit in response',data:{cityName,orgId,consecutiveRateLimits},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
         // #endregion
+      } else if (is404) {
+        // Track consecutive 404s (invalid organization IDs)
+        consecutive404s++;
+        consecutiveRateLimits = 0; // Reset rate limit counter on 404
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'eventbrite.ts:797',message:'404 - Organization not found',data:{cityName,orgId,consecutive404s},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        if (import.meta.env.DEV) {
+          console.log(`Eventbrite: Organization ${orgId} returned 404 (not found). Skipping.`);
+        }
       } else {
-        // Reset consecutive rate limits on success
+        // Reset both counters on success
         consecutiveRateLimits = 0;
+        consecutive404s = 0;
         if (response && response.events && response.events.length > 0) {
           allEvents.push(...response.events);
           if (import.meta.env.DEV) {

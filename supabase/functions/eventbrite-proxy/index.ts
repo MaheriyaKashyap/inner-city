@@ -81,17 +81,20 @@ serve(async (req) => {
     if (!response.ok) {
       // Handle 401, 403, 404 gracefully (return empty results)
       if (response.status === 401 || response.status === 403 || response.status === 404) {
+        console.log(`Eventbrite API returned ${response.status} for org ${organizationId} - returning empty results`);
+        const emptyResponse = {
+          events: [],
+          pagination: {
+            object_count: 0,
+            page_number: 1,
+            page_size: 0,
+            page_count: 0,
+            has_more_items: false,
+          },
+          is404: response.status === 404, // Flag to indicate 404
+        };
         return new Response(
-          JSON.stringify({
-            events: [],
-            pagination: {
-              object_count: 0,
-              page_number: 1,
-              page_size: 0,
-              page_count: 0,
-              has_more_items: false,
-            },
-          }),
+          JSON.stringify(emptyResponse),
           {
             status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
