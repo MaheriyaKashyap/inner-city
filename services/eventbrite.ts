@@ -174,15 +174,20 @@ export async function searchEventsByOrganization(
         fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'eventbrite.ts:160',message:'Edge Function failed, falling back',data:{organizationId,errorMessage:supabaseError?.message||'unknown',errorStatus:statusCode||'unknown',errorCode:supabaseError?.code||'unknown'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
         // #endregion
         
-        // If Edge Function returned 429, don't fallback to direct API (will also hit rate limit)
-        if (statusCode === 429) {
+        // If Edge Function returned 401 (Unauthorized) or 429 (Rate Limit), don't fallback to direct API
+        // 401 means Edge Function needs anonymous access configured
+        // 429 means we're already rate limited
+        if (statusCode === 401 || statusCode === 429) {
           // #region agent log
-          fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'eventbrite.ts:165',message:'Edge Function rate limited, skipping fallback',data:{organizationId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'eventbrite.ts:177',message:'Edge Function auth/rate limit, skipping fallback',data:{organizationId,statusCode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
           // #endregion
+          if (import.meta.env.DEV && statusCode === 401) {
+            console.warn(`Eventbrite Edge Function returned 401. Edge Function needs anonymous access enabled in Supabase dashboard.`);
+          }
           return { events: [], pagination: { object_count: 0, page_number: 1, page_size: 0, page_count: 0, has_more_items: false } };
         }
         
-        // Fallback to direct API if Supabase function fails (but not for 429)
+        // Fallback to direct API if Supabase function fails (but not for 401/429)
         if (import.meta.env.DEV) {
           console.warn('Supabase function failed, falling back to direct API:', supabaseError);
         }
