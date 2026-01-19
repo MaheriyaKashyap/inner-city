@@ -567,7 +567,7 @@ export const Profile: React.FC = () => {
                   </label>
                   <div className="grid grid-cols-3 gap-2 mb-2">
                     {editForm.profilePhotos.map((photo, index) => (
-                      <div key={index} className="relative aspect-square rounded-2xl overflow-hidden border" style={{ borderColor: theme.border }}>
+                      <div key={index} className="relative aspect-square rounded-full overflow-hidden border" style={{ borderColor: theme.border }}>
                         <img src={photo} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
                         {editForm.profilePhotos.length > 1 && (
                           <button
@@ -581,10 +581,11 @@ export const Profile: React.FC = () => {
                       </div>
                     ))}
                     {editForm.profilePhotos.length < 6 && (
-                      <label className="aspect-square rounded-2xl border-2 border-dashed flex items-center justify-center cursor-pointer transition-all active:scale-95" style={{ borderColor: theme.border }}>
+                      <label className="aspect-square rounded-full border-2 border-dashed flex items-center justify-center cursor-pointer transition-all active:scale-95" style={{ borderColor: theme.border }}>
                         <input
                           type="file"
                           accept="image/*"
+                          capture="environment"
                           onChange={handlePhotoUpload}
                           className="hidden"
                         />
@@ -592,7 +593,7 @@ export const Profile: React.FC = () => {
                       </label>
                     )}
                   </div>
-                  <p className="text-[10px] opacity-40">Add up to 6 photos</p>
+                  <p className="text-[10px] opacity-40">Add up to 6 photos from your camera roll</p>
                 </div>
 
                 {/* Display Name */}
