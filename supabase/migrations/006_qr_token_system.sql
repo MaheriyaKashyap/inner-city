@@ -15,7 +15,9 @@ CREATE TABLE used_nonces (
 
 CREATE INDEX idx_used_nonces_ticket ON used_nonces(ticket_id);
 CREATE INDEX idx_used_nonces_used_at ON used_nonces(used_at);
-CREATE INDEX idx_used_nonces_cleanup ON used_nonces(used_at) WHERE used_at < NOW() - INTERVAL '24 hours';
+-- Note: Time-based filtering (used_at < NOW() - INTERVAL '24 hours') is done in queries, not in index predicates
+-- because NOW() is not IMMUTABLE. This index is for general used_at queries.
+CREATE INDEX idx_used_nonces_used_at_desc ON used_nonces(used_at DESC);
 
 -- ============================================================================
 -- QR TOKEN GENERATION FUNCTIONS
