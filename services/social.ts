@@ -469,6 +469,17 @@ export async function getUserEventAttendance(
   } : null;
 }
 
+export async function getUserInterestedEvents(userId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('event_attendees')
+    .select('event_id')
+    .eq('user_id', userId)
+    .eq('status', 'interested');
+
+  if (error) throw error;
+  return (data || []).map(item => item.event_id);
+}
+
 // ============================================================================
 // DIRECT MESSAGES
 // ============================================================================
