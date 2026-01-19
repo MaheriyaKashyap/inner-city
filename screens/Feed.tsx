@@ -421,14 +421,17 @@ export const Feed: React.FC = () => {
 
   return (
     <div className="pb-10 pt-4">
-      <div className="px-6 mb-8 flex items-end justify-between">
-        <div>
+      <div className="px-6 mb-8 flex items-end justify-between gap-4">
+        <div className="flex-1 min-w-0">
           <span className="text-[10px] font-black tracking-[0.4em] uppercase opacity-40 block mb-1">Gateway // {activeCity.country}</span>
-          <h2 className="text-5xl font-black tracking-tighter leading-none uppercase italic">
+          <h2 
+            className="font-black tracking-tighter leading-none uppercase italic truncate"
+            style={{ fontSize: 'clamp(1.5rem, 5vw + 1rem, 3rem)' }}
+          >
             {activeCity.name}
           </h2>
         </div>
-        <div className="flex -space-x-3 mb-1">
+        <div className="flex -space-x-3 mb-1 flex-shrink-0">
            {[1,2,3].map(i => (
              <img key={i} src={`https://picsum.photos/seed/face${i}/50/50`} className="w-8 h-8 rounded-full border-2" style={{ borderColor: theme.background }} />
            ))}
