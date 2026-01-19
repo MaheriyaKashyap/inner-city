@@ -149,7 +149,7 @@ export const EventDetail: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pb-32 relative">
+    <div className="min-h-screen pb-32 relative overflow-x-hidden">
       {/* Header Overlay */}
       <div className="relative h-[65vh]">
         <img 

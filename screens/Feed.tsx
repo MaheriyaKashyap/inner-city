@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useApp } from '../store';
 import { Event, CityPulse, UserPost } from '../types';
 import { Badge, Card } from '../components/UI';
-import { Heart, Bookmark, Share2, MapPin, Clock, Zap, PlayCircle, ShieldCheck, MessageCircle, MoreHorizontal, Send } from 'lucide-react';
+import { Heart, Bookmark, Share2, MapPin, Clock, Zap, PlayCircle, ShieldCheck, MessageCircle, MoreHorizontal, Send, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isValid, formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
