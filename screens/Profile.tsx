@@ -249,7 +249,31 @@ export const Profile: React.FC = () => {
     }
   };
 
-  const handleRemovePhoto = (index: number) => {
+  const handleRemovePhoto = async (index: number) => {
+    const photoToRemove = editForm.profilePhotos[index];
+    
+    // If it's a Supabase Storage URL, delete it from storage
+    if (photoToRemove && photoToRemove.includes('supabase.co/storage')) {
+      try {
+        // Extract file path from URL
+        const urlParts = photoToRemove.split('/storage/v1/object/public/profile-photos/');
+        if (urlParts.length > 1) {
+          const filePath = urlParts[1];
+          const { error } = await supabase.storage
+            .from('profile-photos')
+            .remove([filePath]);
+          
+          if (error) {
+            console.error('Error deleting photo from storage:', error);
+            // Continue with removal from UI even if storage delete fails
+          }
+        }
+      } catch (error) {
+        console.error('Error deleting photo:', error);
+        // Continue with removal from UI
+      }
+    }
+    
     const newPhotos = editForm.profilePhotos.filter((_, i) => i !== index);
     setEditForm({ ...editForm, profilePhotos: newPhotos });
     setLongPressedIndex(null);
