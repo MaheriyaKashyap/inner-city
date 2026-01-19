@@ -144,13 +144,13 @@ export const MapScreen: React.FC = () => {
 
   const cityEvents = useMemo(() => {
     try {
-      // Filter and only include events with valid coordinates for map display
-      return events.filter(e => e && e.cityId === activeCity.id && typeof e.lat === 'number' && typeof e.lng === 'number' && !isNaN(e.lat) && !isNaN(e.lng));
+      // Show all events with valid coordinates on the map (not filtered by city)
+      return events.filter(e => e && typeof e.lat === 'number' && typeof e.lng === 'number' && !isNaN(e.lat) && !isNaN(e.lng));
     } catch (e) {
       console.error('Error filtering city events:', e);
       return [];
     }
-  }, [events, activeCity.id]);
+  }, [events]);
   
   const selectedEvent = events.find(e => e.id === selectedEventId);
   const [selectedCluster, setSelectedCluster] = useState<{ location: { lat: number; lng: number }; events: Event[] } | null>(null);
