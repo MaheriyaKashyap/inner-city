@@ -32,6 +32,8 @@ export const Profile: React.FC = () => {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [userEvents, setUserEvents] = useState<EventAttendee[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+  const [longPressedIndex, setLongPressedIndex] = useState<number | null>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   const [showEditModal, setShowEditModal] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -232,8 +234,32 @@ export const Profile: React.FC = () => {
   const handleRemovePhoto = (index: number) => {
     const newPhotos = editForm.profilePhotos.filter((_, i) => i !== index);
     setEditForm({ ...editForm, profilePhotos: newPhotos });
+    setLongPressedIndex(null);
     if (currentPhotoIndex >= newPhotos.length && newPhotos.length > 0) {
       setCurrentPhotoIndex(newPhotos.length - 1);
+    }
+  };
+
+  const handleLongPressStart = (index: number) => {
+    longPressTimerRef.current = setTimeout(() => {
+      setLongPressedIndex(index);
+    }, 500); // 500ms long press
+  };
+
+  const handleLongPressEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handlePhotoClick = (index: number) => {
+    if (longPressedIndex === index) {
+      // If trash icon is showing, clicking removes the photo
+      handleRemovePhoto(index);
+    } else {
+      // Otherwise, navigate to that photo in carousel
+      setCurrentPhotoIndex(index);
     }
   };
 
@@ -584,16 +610,35 @@ export const Profile: React.FC = () => {
                   </label>
                   <div className="grid grid-cols-3 gap-2 mb-2">
                     {editForm.profilePhotos.map((photo, index) => (
-                      <div key={index} className="relative aspect-square rounded-full overflow-hidden border" style={{ borderColor: theme.border }}>
+                      <div 
+                        key={index} 
+                        className="relative aspect-square rounded-full overflow-hidden border cursor-pointer transition-all active:scale-95" 
+                        style={{ borderColor: theme.border }}
+                        onMouseDown={() => handleLongPressStart(index)}
+                        onMouseUp={handleLongPressEnd}
+                        onMouseLeave={handleLongPressEnd}
+                        onTouchStart={() => handleLongPressStart(index)}
+                        onTouchEnd={handleLongPressEnd}
+                        onClick={() => handlePhotoClick(index)}
+                      >
                         <img src={photo} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
-                        {editForm.profilePhotos.length > 1 && (
-                          <button
-                            onClick={() => handleRemovePhoto(index)}
-                            className="absolute top-1 right-1 p-1 rounded-full backdrop-blur-md"
-                            style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+                        {longPressedIndex === index && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-full"
                           >
-                            <Trash2 size={14} color="#fff" />
-                          </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemovePhoto(index);
+                              }}
+                              className="p-2 rounded-full backdrop-blur-md transition-all active:scale-110"
+                              style={{ backgroundColor: 'rgba(239, 68, 68, 0.9)' }}
+                            >
+                              <Trash2 size={20} color="#fff" />
+                            </button>
+                          </motion.div>
                         )}
                       </div>
                     ))}
@@ -602,7 +647,6 @@ export const Profile: React.FC = () => {
                         <input
                           type="file"
                           accept="image/*"
-                          capture="environment"
                           onChange={handlePhotoUpload}
                           className="hidden"
                         />
