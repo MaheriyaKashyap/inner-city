@@ -449,75 +449,92 @@ export const MapScreen: React.FC = () => {
 
   // Request location when user grants permission
   const requestLocation = () => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      console.warn('Geolocation not supported');
+      return;
+    }
 
     setLocationPermission('checking');
-    setShowPermissionPrompt(false);
+    // Don't hide prompt immediately - wait for browser's native prompt response
+    // On desktop, the browser will show its own permission dialog
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setUserLocation({ lat: latitude, lng: longitude });
-        setLocationPermission('granted');
+    try {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation({ lat: latitude, lng: longitude });
+          setLocationPermission('granted');
+          setShowPermissionPrompt(false);
 
-        // Center map on user location
-        const centerMapOnUser = () => {
-          if (mapRef.current && !mapError) {
-            // Remove existing user location marker if any
-            if ((markersRef.current as any).__userLocation) {
-              (markersRef.current as any).__userLocation.remove();
+          // Center map on user location
+          const centerMapOnUser = () => {
+            if (mapRef.current && !mapError) {
+              // Remove existing user location marker if any
+              if ((markersRef.current as any).__userLocation) {
+                (markersRef.current as any).__userLocation.remove();
+              }
+
+              mapRef.current.flyTo({
+                center: [longitude, latitude],
+                zoom: 14,
+                duration: 1500,
+              });
+
+              // Add user location marker
+              const el = document.createElement('div');
+              el.className = 'user-location-marker';
+              el.innerHTML = `
+                <div class="relative flex items-center justify-center w-8 h-8">
+                  <div class="absolute inset-0 rounded-full bg-blue-500 opacity-30 animate-ping"></div>
+                  <div class="relative z-10 w-6 h-6 rounded-full bg-blue-500 border-2 border-white shadow-lg"></div>
+                </div>
+              `;
+
+              const userMarker = new mapboxgl.Marker(el)
+                .setLngLat([longitude, latitude])
+                .addTo(mapRef.current);
+
+              // Store reference to remove later if needed
+              (markersRef.current as any).__userLocation = userMarker;
             }
+          };
 
-            mapRef.current.flyTo({
-              center: [longitude, latitude],
-              zoom: 14,
-              duration: 1500,
-            });
-
-            // Add user location marker
-            const el = document.createElement('div');
-            el.className = 'user-location-marker';
-            el.innerHTML = `
-              <div class="relative flex items-center justify-center w-8 h-8">
-                <div class="absolute inset-0 rounded-full bg-blue-500 opacity-30 animate-ping"></div>
-                <div class="relative z-10 w-6 h-6 rounded-full bg-blue-500 border-2 border-white shadow-lg"></div>
-              </div>
-            `;
-
-            const userMarker = new mapboxgl.Marker(el)
-              .setLngLat([longitude, latitude])
-              .addTo(mapRef.current);
-
-            // Store reference to remove later if needed
-            (markersRef.current as any).__userLocation = userMarker;
+          // Wait for map to be ready if needed
+          if (mapRef.current && mapRef.current.loaded()) {
+            centerMapOnUser();
+          } else if (mapRef.current) {
+            mapRef.current.once('load', centerMapOnUser);
+          } else {
+            // Map not ready yet, wait a bit
+            setTimeout(centerMapOnUser, 500);
           }
-        };
-
-        // Wait for map to be ready if needed
-        if (mapRef.current && mapRef.current.loaded()) {
-          centerMapOnUser();
-        } else if (mapRef.current) {
-          mapRef.current.once('load', centerMapOnUser);
-        } else {
-          // Map not ready yet, wait a bit
-          setTimeout(centerMapOnUser, 500);
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          if (error.code === error.PERMISSION_DENIED) {
+            setLocationPermission('denied');
+            setShowPermissionPrompt(false);
+          } else if (error.code === error.TIMEOUT) {
+            // Timeout - might need to check browser settings
+            setLocationPermission('prompt');
+            setShowPermissionPrompt(true);
+          } else {
+            // Other errors - show prompt again
+            setLocationPermission('prompt');
+            setShowPermissionPrompt(true);
+          }
+        },
+        {
+          enableHighAccuracy: false, // Better for desktop - faster and less battery
+          timeout: 15000, // Increased timeout for desktop browsers
+          maximumAge: 0, // Always get fresh location
         }
-      },
-      (error) => {
-        console.error('Error getting location:', error);
-        if (error.code === error.PERMISSION_DENIED) {
-          setLocationPermission('denied');
-        } else {
-          setLocationPermission('prompt');
-          setShowPermissionPrompt(true);
-        }
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
+      );
+    } catch (err) {
+      console.error('Error requesting location:', err);
+      setLocationPermission('prompt');
+      setShowPermissionPrompt(true);
+    }
   };
 
   const dismissPermissionPrompt = () => {
