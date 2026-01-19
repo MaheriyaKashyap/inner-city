@@ -816,25 +816,30 @@ export async function searchEventsByCity(
   }
 
   // Add rate limiting: delay between requests to avoid 429 errors
-  // Eventbrite rate limit is ~1-2 requests per second, so use 1 second delay
-  const delayBetweenRequests = 1000; // 1 second delay = 1 request/second (safe for Eventbrite)
+  // Eventbrite rate limit is strict - use 2.5 second delay to be safe
+  const delayBetweenRequests = 2500; // 2.5 second delay = ~0.4 requests/second (well under Eventbrite's limit)
   let consecutiveRateLimits = 0;
   const maxConsecutiveRateLimits = 3; // Stop after 3 consecutive rate limits
   
-  for (let i = 0; i < organizations.length; i++) {
-    const orgId = organizations[i];
+  // Limit number of organizations to avoid hitting rate limits
+  // Query top organizations first (they're likely to have more events)
+  const maxOrganizations = 15; // Limit to 15 organizations per city
+  const limitedOrganizations = organizations.slice(0, maxOrganizations);
+  
+  for (let i = 0; i < limitedOrganizations.length; i++) {
+    const orgId = limitedOrganizations[i];
     try {
       // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'eventbrite.ts:763',message:'Fetching org events',data:{cityName,orgId,orgIndex:i+1,totalOrgs:organizations.length,consecutiveRateLimits},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'eventbrite.ts:763',message:'Fetching org events',data:{cityName,orgId,orgIndex:i+1,totalOrgs:limitedOrganizations.length,consecutiveRateLimits},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
       // #endregion
       
       // Stop if we've hit too many consecutive rate limits
       if (consecutiveRateLimits >= maxConsecutiveRateLimits) {
         // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'eventbrite.ts:770',message:'Stopping due to consecutive rate limits',data:{cityName,consecutiveRateLimits,processed:i},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7244/ingest/500c6263-d9c5-4196-a88c-cf974eeb7593',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'eventbrite.ts:770',message:'Stopping due to consecutive rate limits',data:{cityName,consecutiveRateLimits,processed:i,totalOrganizations:limitedOrganizations.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
         // #endregion
         if (import.meta.env.DEV) {
-          console.warn(`Eventbrite: Stopping after ${consecutiveRateLimits} consecutive rate limits. Processed ${i} of ${organizations.length} organizations.`);
+          console.warn(`Eventbrite: Stopping after ${consecutiveRateLimits} consecutive rate limits. Processed ${i} of ${limitedOrganizations.length} organizations.`);
         }
         break;
       }
@@ -886,8 +891,8 @@ export async function searchEventsByCity(
     }
   }
 
-  if (import.meta.env.DEV && allEvents.length === 0 && organizations.length > 0) {
-    console.warn(`Eventbrite: No events found for ${cityName} despite ${organizations.length} organizations configured. Check API token and organization IDs.`);
+  if (import.meta.env.DEV && allEvents.length === 0 && limitedOrganizations.length > 0) {
+    console.warn(`Eventbrite: No events found for ${cityName} despite ${limitedOrganizations.length} organizations queried (${organizations.length} total configured). Check API token and organization IDs.`);
   }
 
   return allEvents;
