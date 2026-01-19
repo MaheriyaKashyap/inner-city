@@ -920,7 +920,7 @@ export const MapScreen: React.FC = () => {
               const categoryCount = Math.min(categories.size, 3);
               
               el.innerHTML = `
-                <div class="relative flex items-center justify-center group cursor-pointer" style="width: ${size}px; height: ${size}px;">
+                <div class="relative flex items-center justify-center group cursor-pointer" style="width: ${size}px; height: ${size}px; border-radius: 50%; overflow: hidden;">
                   <!-- Outer glow ring -->
                   <div class="absolute inset-0 rounded-full blur-lg opacity-50 transition-all duration-300 group-hover:opacity-100 group-hover:blur-xl" 
                        style="background: ${primaryColor}; box-shadow: 0 0 ${size}px ${primaryColor}40;"></div>
